@@ -130,38 +130,45 @@ export async function POST(req: Request) {
         insertData.isAttendedTraining = 1; // Mark as trained
     }
 
-    // Insert into DB
-    const memberId = generateUuid();
-    await db.insert(teamMembers).values({
-      id: memberId,
-      ...insertData
+    // 5. TRANSACTIONAL INSERT & ID GENERATION
+    const result = await db.transaction(async (tx) => {
+        const memberId = generateUuid();
+        
+        // Insert member
+        await tx.insert(teamMembers).values({
+          id: memberId,
+          ...insertData
+        });
+
+        // Fetch sequence number
+        const [newMember] = await tx.select({ seqNumber: teamMembers.seqNumber })
+          .from(teamMembers)
+          .where(eq(teamMembers.id, memberId));
+        
+        const displayId = `MBR-${(newMember?.seqNumber || 0).toString().padStart(5, '0')}`;
+        
+        // Update displayId
+        await tx.update(teamMembers)
+          .set({ displayId })
+          .where(eq(teamMembers.id, memberId));
+
+        // SYNC LEADER TO TEAMS TABLE
+        if (position === "Leader") {
+            await tx.update(teams)
+              .set({ 
+                  leaderName: name, 
+                  leaderPhone: phone 
+              })
+              .where(eq(teams.id, teamId));
+        }
+
+        return { id: memberId, displayId };
     });
-
-    // Fetch the generated seq_number to create displayId
-    const [newMember] = await db.select({ seqNumber: teamMembers.seqNumber })
-      .from(teamMembers)
-      .where(eq(teamMembers.id, memberId));
-    
-    const displayId = `MBR-${(newMember?.seqNumber || 0).toString().padStart(5, '0')}`;
-    
-    await db.update(teamMembers)
-      .set({ displayId })
-      .where(eq(teamMembers.id, memberId));
-
-    // 6. SYNC LEADER TO TEAMS TABLE
-    if (position === "Leader") {
-        await db.update(teams)
-          .set({ 
-              leaderName: name, 
-              leaderPhone: phone 
-          })
-          .where(eq(teams.id, teamId));
-    }
 
     return NextResponse.json({ 
       message: oldMember?.certificateFilePath ? "Member added and recognized as returning personnel." : "Member added successfully", 
-      id: memberId,
-      displayId
+      id: result.id,
+      displayId: result.displayId
     }, { status: 201 });
   } catch (error: any) {
     console.error("Member creation error:", error);

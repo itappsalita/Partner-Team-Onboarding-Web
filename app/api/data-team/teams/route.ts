@@ -130,36 +130,41 @@ export async function POST(req: Request) {
     const firstAidFilePath = await saveFile(firstAidFile, "firstaid");
     const electricalFilePath = await saveFile(electricalFile, "elec");
 
-    // 3. Insert into DB
-    const teamId = generateUuid();
-    await db.insert(teams).values({
-      id: teamId,
-      dataTeamPartnerId,
-      teamNumber,
-      leaderName,
-      leaderPhone,
-      tkpk1Number,
-      tkpk1FilePath,
-      firstAidNumber,
-      firstAidFilePath,
-      electricalNumber,
-      electricalFilePath,
-      position,
-      location,
+    // 3. TRANSACTIONAL INSERT & ID GENERATION
+    const result = await db.transaction(async (tx) => {
+        const teamId = generateUuid();
+        await tx.insert(teams).values({
+          id: teamId,
+          dataTeamPartnerId,
+          teamNumber,
+          leaderName,
+          leaderPhone,
+          tkpk1Number,
+          tkpk1FilePath,
+          firstAidNumber,
+          firstAidFilePath,
+          electricalNumber,
+          electricalFilePath,
+          position,
+          location,
+        });
+
+        // Fetch sequence number
+        const [newTeam] = await tx.select({ seqNumber: teams.seqNumber })
+          .from(teams)
+          .where(eq(teams.id, teamId));
+        
+        const displayId = `TM-${(newTeam?.seqNumber || 0).toString().padStart(5, '0')}`;
+        
+        // Update displayId
+        await tx.update(teams)
+          .set({ displayId })
+          .where(eq(teams.id, teamId));
+
+        return { id: teamId, displayId };
     });
 
-    // 4. Fetch the generated seq_number to create displayId
-    const [newTeam] = await db.select({ seqNumber: teams.seqNumber })
-      .from(teams)
-      .where(eq(teams.id, teamId));
-    
-    const displayId = `TM-${(newTeam?.seqNumber || 0).toString().padStart(5, '0')}`;
-    
-    await db.update(teams)
-      .set({ displayId })
-      .where(eq(teams.id, teamId));
-
-    return NextResponse.json({ message: "Team added successfully", id: teamId, displayId }, { status: 201 });
+    return NextResponse.json({ message: "Team added successfully", id: result.id, displayId: result.displayId }, { status: 201 });
   } catch (error: any) {
     console.error("Team creation error:", error);
     return NextResponse.json({ error: "Failed to add team" }, { status: 500 });

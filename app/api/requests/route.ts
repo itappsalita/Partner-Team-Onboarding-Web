@@ -83,31 +83,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields (including membersPerTeam)" }, { status: 400 });
     }
 
-    const requestId = generateUuid();
-    await db.insert(requestForPartners).values({
-      id: requestId,
-      pmoId: (session.user as any).id,
-      sowPekerjaan,
-      provinsi,
-      area,
-      jumlahKebutuhan: parseInt(jumlahKebutuhan),
-      membersPerTeam: parseInt(membersPerTeam),
-      siteId,
-      status: 'REQUESTED'
+    // 5. TRANSACTIONAL INSERT & ID GENERATION
+    const result = await db.transaction(async (tx) => {
+        const requestId = generateUuid();
+        await tx.insert(requestForPartners).values({
+          id: requestId,
+          pmoId: (session.user as any).id,
+          sowPekerjaan,
+          provinsi,
+          area,
+          jumlahKebutuhan: parseInt(jumlahKebutuhan),
+          membersPerTeam: parseInt(membersPerTeam),
+          siteId,
+          status: 'REQUESTED'
+        });
+
+        // Fetch sequence number
+        const [newReq] = await tx.select({ seqNumber: requestForPartners.seqNumber })
+          .from(requestForPartners)
+          .where(eq(requestForPartners.id, requestId));
+        
+        const displayId = `REQ-${(newReq?.seqNumber || 0).toString().padStart(5, '0')}`;
+        
+        // Update displayId
+        await tx.update(requestForPartners)
+          .set({ displayId })
+          .where(eq(requestForPartners.id, requestId));
+
+        return { id: requestId, displayId };
     });
 
-    // Fetch the generated seq_number to create displayId
-    const [newReq] = await db.select({ seqNumber: requestForPartners.seqNumber })
-      .from(requestForPartners)
-      .where(eq(requestForPartners.id, requestId));
-    
-    const displayId = `REQ-${(newReq?.seqNumber || 0).toString().padStart(5, '0')}`;
-    
-    await db.update(requestForPartners)
-      .set({ displayId })
-      .where(eq(requestForPartners.id, requestId));
-
-    return NextResponse.json({ message: "Request created successfully", id: requestId, displayId }, { status: 201 });
+    return NextResponse.json({ message: "Request created successfully", id: result.id, displayId: result.displayId }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: "Failed to create request" }, { status: 500 });
   }
