@@ -59,6 +59,16 @@ npm run dev
 ```
 Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
 
+## 🐳 Deployment dengan Docker (Produksi)
+
+Aplikasi ini sudah dioptimalkan untuk berjalan di dalam kontainer menggunakan Docker.
+
+1.  **Build & Run**:
+    ```bash
+    docker compose up -d --build
+    ```
+2.  **Detail Operasional**: Silakan baca panduan lengkap di [docs/docker-guide.md](./docs/docker-guide.md) untuk informasi mengenai manejemen variabel lingkungan, volume data, dan sinkronisasi database.
+
 ## ⚠️ Catatan Penting
 
 - **Arsitektur Identitas**: Aplikasi ini menggunakan kombinasi **UUID v7** untuk kunci internal (mendukung performa indexing tinggi) dan **Display ID** (seperti `USR-00001`, `REQ-00001`) untuk navigasi pengguna yang human-readable.
