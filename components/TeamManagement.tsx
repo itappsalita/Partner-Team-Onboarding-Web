@@ -89,11 +89,14 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
   const openEditTeamModal = (team: any) => {
     setIsEditMode(true);
+    // Find leader from members if not already populated in team object
+    const memberLeader = team.members?.find((m: any) => m.position === "Leader" && m.isActive === 1);
+    
     setTeamFormInitial({
       id: team.id,
       teamNumber: team.teamNumber.toString(),
-      leaderName: team.leaderName || "",
-      leaderPhone: team.leaderPhone || "",
+      leaderName: memberLeader?.name || team.leaderName || "",
+      leaderPhone: memberLeader?.phone || team.leaderPhone || "",
       tkpk1Number: team.tkpk1Number || "",
       tkpk1File: null,
       firstAidNumber: team.firstAidNumber || "",
@@ -132,8 +135,10 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     if (!activeTeam || isStructuralReadOnly) return;
     
     // Validasi Ekstra
-    if (!activeTeam.leaderName || !activeTeam.tkpk1Number || !activeTeam.members || activeTeam.members.length === 0) {
-      alert("Syarat Minimal belum terpenuhi: Pastikan Leader terisi, Nomor TKPK1 terisi, dan minimal ada 1 anggota.");
+    const hasLeader = activeTeam.members?.some((m: any) => m.position === "Leader" && m.isActive === 1);
+    
+    if (!hasLeader || !activeTeam.tkpk1Number || !activeTeam.members || activeTeam.members.length === 0) {
+      alert("Syarat Minimal belum terpenuhi: Pastikan Tim memiliki 1 Leader terdaftar di daftar anggota, Nomor TKPK1 terisi, dan minimal ada 1 anggota.");
       return;
     }
 
@@ -161,7 +166,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
   };
 
   const isTeamValidToRequest = activeTeam && 
-                               activeTeam.leaderName && 
+                               activeTeam.members?.some((m: any) => m.position === "Leader" && m.isActive === 1) && 
                                activeTeam.tkpk1Number && 
                                activeTeam.members && 
                                activeTeam.members.filter((m: any) => m.isActive === 1).length > 0;

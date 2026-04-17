@@ -133,6 +133,14 @@ export default function MemberWizard({
       return;
     }
 
+    if (memberForm.position === "Leader") {
+      const existingLeader = activeTeam.members?.find((m: any) => m.position === "Leader" && m.isActive === 1);
+      if (existingLeader) {
+        alert(`Tim ini sudah memiliki Leader: ${existingLeader.name}. Silakan hapus leader lama terlebih dahulu jika ingin menggantinya.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -281,6 +289,7 @@ export default function MemberWizard({
                 required
               >
                 <option value="">-- Pilih Posisi --</option>
+                <option value="Leader">Leader</option>
                 <option value="Technician">Technician</option>
                 <option value="Helper">Helper</option>
                 <option value="Driver">Driver</option>

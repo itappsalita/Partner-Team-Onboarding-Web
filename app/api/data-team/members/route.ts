@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { join } from "path";
 import { db } from "../../../../db";
 import { teamMembers, teams } from "../../../../db/schema";
 import { getServerSession } from "next-auth/next";
@@ -141,11 +142,21 @@ export async function POST(req: Request) {
       .from(teamMembers)
       .where(eq(teamMembers.id, memberId));
     
-    const displayId = `MBR-${newMember.seqNumber.toString().padStart(5, '0')}`;
+    const displayId = `MBR-${(newMember?.seqNumber || 0).toString().padStart(5, '0')}`;
     
     await db.update(teamMembers)
       .set({ displayId })
       .where(eq(teamMembers.id, memberId));
+
+    // 6. SYNC LEADER TO TEAMS TABLE
+    if (position === "Leader") {
+        await db.update(teams)
+          .set({ 
+              leaderName: name, 
+              leaderPhone: phone 
+          })
+          .where(eq(teams.id, teamId));
+    }
 
     return NextResponse.json({ 
       message: oldMember?.certificateFilePath ? "Member added and recognized as returning personnel." : "Member added successfully", 

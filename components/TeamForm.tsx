@@ -82,16 +82,30 @@ export default function TeamForm({
              <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">No Tim</label>
              <input type="number" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold disabled:opacity-50" value={formData.teamNumber} onChange={e => setFormData({...formData, teamNumber: e.target.value})} required disabled={isEditMode} />
            </div>
-           <div className="md:col-span-3">
-             <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Nama Team Leader</label>
-             <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold" value={formData.leaderName} onChange={e => setFormData({...formData, leaderName: e.target.value})} required placeholder="Masukkan nama lengkap leader" />
-           </div>
+            <div className="md:col-span-3">
+              <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Nama Team Leader</label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 bg-alita-gray-100 border border-alita-gray-200 rounded-xl text-sm font-bold text-alita-gray-500 cursor-not-allowed" 
+                value={formData.leaderName || ""} 
+                readOnly 
+                placeholder="Otomatis dari Anggota (Role Leader)" 
+                title="Data ini diambil otomatis dari anggota tim yang memiliki jabatan Leader"
+              />
+            </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">No Handphone Leader</label>
-            <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold" value={formData.leaderPhone} onChange={e => setFormData({...formData, leaderPhone: e.target.value})} required placeholder="Contoh: 081234567890" />
+            <input 
+              type="text" 
+              className="w-full px-4 py-3 bg-alita-gray-100 border border-alita-gray-200 rounded-xl text-sm font-bold text-alita-gray-500 cursor-not-allowed" 
+              value={formData.leaderPhone || ""} 
+              readOnly 
+              placeholder="Otomatis dari Anggota (Role Leader)" 
+              title="Data ini diambil otomatis dari anggota tim yang memiliki jabatan Leader"
+            />
           </div>
           <div>
             <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Posisi</label>

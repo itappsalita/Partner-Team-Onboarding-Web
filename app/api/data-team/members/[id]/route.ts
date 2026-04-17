@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../../db";
-import { teamMembers } from "../../../../../db/schema";
+import { teamMembers, teams } from "../../../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { eq } from "drizzle-orm";
@@ -32,9 +32,19 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     } else {
       // If not certified, hard delete
       await db.delete(teamMembers).where(eq(teamMembers.id, memberId));
-      
-      return NextResponse.json({ message: "Member deleted successfully." });
     }
+
+    // SYNC: If the removed member was a leader, clear the teams table fields
+    if (member.position === "Leader") {
+      await db.update(teams)
+        .set({ 
+          leaderName: "", 
+          leaderPhone: "" 
+        })
+        .where(eq(teams.id, member.teamId));
+    }
+
+    return NextResponse.json({ message: "Member removal processed successfully." });
 
   } catch (error: any) {
     console.error("Delete member error:", error);
