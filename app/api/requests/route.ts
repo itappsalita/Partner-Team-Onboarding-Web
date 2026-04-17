@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../db";
-import { requestForPartners } from "../../../db/schema";
+import { requestForPartners, dataTeamPartners } from "../../../db/schema";
+import { eq } from "drizzle-orm";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { generateUuid } from "../../../lib/uuid";
