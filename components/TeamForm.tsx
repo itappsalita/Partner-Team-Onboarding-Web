@@ -71,140 +71,75 @@ export default function TeamForm({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEditMode ? "Edit Tim" : "Tambah Tim Baru"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Nomor Tim</label>
-            <input
-              type="text"
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              value={formData.teamNumber}
-              onChange={(e) => setFormData({ ...formData, teamNumber: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Posisi Pekerjaan</label>
-            <input
-              type="text"
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-            />
-          </div>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={isEditMode ? "Edit Data Tim Lapangan" : "Buat Tim Lapangan Baru"}
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+           <div className="md:col-span-1">
+             <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">No Tim</label>
+             <input type="number" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold disabled:opacity-50" value={formData.teamNumber} onChange={e => setFormData({...formData, teamNumber: e.target.value})} required disabled={isEditMode} />
+           </div>
+           <div className="md:col-span-3">
+             <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Nama Team Leader</label>
+             <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold" value={formData.leaderName} onChange={e => setFormData({...formData, leaderName: e.target.value})} required placeholder="Masukkan nama lengkap leader" />
+           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Nama Leader</label>
-            <input
-              type="text"
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              value={formData.leaderName}
-              onChange={(e) => setFormData({ ...formData, leaderName: e.target.value })}
-            />
+            <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">No Handphone Leader</label>
+            <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold" value={formData.leaderPhone} onChange={e => setFormData({...formData, leaderPhone: e.target.value})} required placeholder="Contoh: 081234567890" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">No. HP Leader</label>
-            <input
-              type="text"
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              value={formData.leaderPhone}
-              onChange={(e) => setFormData({ ...formData, leaderPhone: e.target.value })}
-            />
+            <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Posisi</label>
+            <input type="text" className="w-full px-4 py-3 bg-alita-100 border border-alita-gray-200 rounded-xl text-sm font-bold text-alita-gray-500 cursor-not-allowed" value={formData.position} disabled />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Lokasi Kerja</label>
-          <input
-            type="text"
-            required
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          />
+          <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Lokasi Penugasan</label>
+          <input type="text" className="w-full px-4 py-3 bg-alita-100 border border-alita-gray-200 rounded-xl text-sm font-bold text-alita-gray-500 cursor-not-allowed" value={formData.location} disabled />
         </div>
 
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-bold text-gray-800 mb-2">Dokumen Kelengkapan Tim (Leader)</h4>
-          <div className="space-y-3">
-             <div className="grid grid-cols-2 gap-2 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500">No. TKPK 1</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                    value={formData.tkpk1Number}
-                    onChange={(e) => setFormData({ ...formData, tkpk1Number: e.target.value })}
-                  />
-                </div>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  onChange={(e) => setFormData({ ...formData, tkpk1File: e.target.files?.[0] || null })}
-                />
-             </div>
-             
-             <div className="grid grid-cols-2 gap-2 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500">No. Sertifikat P3K</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                    value={formData.firstAidNumber}
-                    onChange={(e) => setFormData({ ...formData, firstAidNumber: e.target.value })}
-                  />
-                </div>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  onChange={(e) => setFormData({ ...formData, firstAidFile: e.target.files?.[0] || null })}
-                />
-             </div>
+        <div className="border-2 border-alita-gray-50 rounded-2xl p-6 bg-alita-gray-50/30">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-alita-gray-400 mb-5 flex items-center gap-2">
+            <span className="w-4 h-[2px] bg-alita-gray-200"></span>
+            Sertifikat Keahlian
+          </h4>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">Nomor Sertifikat TKPK 1</label>
+              <input type="text" className="w-full px-4 py-3 bg-alita-white border border-alita-gray-200 rounded-xl text-sm font-bold shadow-sm focus:border-alita-orange transition-colors" value={formData.tkpk1Number} onChange={e => setFormData({...formData, tkpk1Number: e.target.value})} required placeholder="Input Nomor Sertifikat" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">File Sertifikat TKPK 1 (PDF/JPG)</label>
+              <div className="flex flex-col gap-2">
+                 {isEditMode && initialData?.tkpk1FilePath && <p className="text-[10px] font-bold text-alita-orange italic">Sudah ada file. Unggah baru untuk mengganti.</p>}
+                 <input type="file" className="block w-full text-xs text-alita-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-[11px] file:font-black file:bg-alita-black file:text-alita-white hover:file:bg-alita-orange file:transition-colors" onChange={e => setFormData({...formData, tkpk1File: e.target.files?.[0] || null})} required={!isEditMode && !initialData?.tkpk1FilePath} />
+              </div>
+            </div>
 
-             <div className="grid grid-cols-2 gap-2 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500">No. Sertifikat Listrik</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                    value={formData.electricalNumber}
-                    onChange={(e) => setFormData({ ...formData, electricalNumber: e.target.value })}
-                  />
-                </div>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  onChange={(e) => setFormData({ ...formData, electricalFile: e.target.files?.[0] || null })}
-                />
-             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-alita-gray-100 mt-6">
+               <div>
+                  <label className="block text-[11px] font-bold text-alita-black mb-2">No. First Aid (Opsional)</label>
+                  <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" value={formData.firstAidNumber} onChange={e => setFormData({...formData, firstAidNumber: e.target.value})} />
+                  <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, firstAidFile: e.target.files?.[0] || null})} />
+               </div>
+               <div>
+                  <label className="block text-[11px] font-bold text-alita-black mb-2">No. Electrical (Opsional)</label>
+                  <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" value={formData.electricalNumber} onChange={e => setFormData({...formData, electricalNumber: e.target.value})} />
+                  <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, electricalFile: e.target.files?.[0] || null})} />
+               </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            Batal
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || isStructuralReadOnly}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
-          >
-            {submitting ? "Menyimpan..." : (isEditMode ? "Simpan Perubahan" : "Buat Tim")}
-          </button>
-        </div>
+        <button type="submit" className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" disabled={submitting}>
+          {submitting ? "Proses Menyimpan..." : isEditMode ? "Perbarui Data Tim" : "Simpan Tim Baru"}
+        </button>
       </form>
     </Modal>
   );
