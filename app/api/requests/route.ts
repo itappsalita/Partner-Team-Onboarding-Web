@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       orderBy: (requests: any, { desc }: any) => [desc(requests.createdAt)],
     };
 
-    const allRequests = await db.query.requestForPartners.findMany(queryOptions);
+    const allRequests = (await db.query.requestForPartners.findMany(queryOptions)) as any[];
 
     // If partner, filter out requests that don't have any associated assignments for them
     let filteredRequests = allRequests;
@@ -47,9 +47,9 @@ export async function GET(req: Request) {
     }
 
     // Calculate totalRegisteredTeams for each request (excluding CANCELED assignments)
-    const requestsWithTotals = filteredRequests.map(req => {
-      const activeAssignments = req.dataTeamPartners.filter(dt => dt.status !== 'CANCELED');
-      const totalRegisteredTeams = activeAssignments.reduce((acc, dt) => acc + dt.teams.length, 0);
+    const requestsWithTotals = filteredRequests.map((req: any) => {
+      const activeAssignments = (req.dataTeamPartners || []).filter((dt: any) => dt.status !== 'CANCELED');
+      const totalRegisteredTeams = activeAssignments.reduce((acc: number, dt: any) => acc + (dt.teams?.length || 0), 0);
       // Remove dataTeamPartners from the response
       const { dataTeamPartners: _, ...rest } = req;
       return { 
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
       .from(requestForPartners)
       .where(eq(requestForPartners.id, requestId));
     
-    const displayId = `REQ-${newReq.seqNumber.toString().padStart(5, '0')}`;
+    const displayId = `REQ-${(newReq?.seqNumber || 0).toString().padStart(5, '0')}`;
     
     await db.update(requestForPartners)
       .set({ displayId })
