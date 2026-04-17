@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     // If partner, filter out requests that don't have any associated assignments for them
     let filteredRequests = allRequests;
     if (isPartner) {
-        filteredRequests = allRequests.filter(req => req.dataTeamPartners.length > 0);
+        filteredRequests = allRequests.filter((req: any) => req.dataTeamPartners.length > 0);
     }
 
     // Calculate totalRegisteredTeams for each request (excluding CANCELED assignments)
