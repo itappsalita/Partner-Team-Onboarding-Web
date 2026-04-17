@@ -36,7 +36,9 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
   const [requesting, setRequesting] = useState<string | null>(null);
   
   const [teamFormInitial, setTeamFormInitial] = useState<any>(null);
-  const [memberFormInitial, setMemberFormInitial] = useState<any>(null); // Placeholder if needed
+  const [memberFormInitial, setMemberFormInitial] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -104,29 +106,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     setIsTeamModalOpen(true);
   };
 
-      if (memberForm.selfieFile) formData.append("selfieFile", memberForm.selfieFile);
 
-      const res = await fetch("/api/data-team/members", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        setIsMemberModalOpen(false);
-        setMemberForm({ name: "", position: "", nik: "", phone: "", ktpFile: null, selfieFile: null });
-        setSelfiePreview(null);
-        setKtpPreview(null);
-        fetchTeams();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Gagal menambah anggota");
-      }
-    } catch (err) {
-      alert("Sistem error.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDeleteMember = async (memberId: string, isCertified: boolean) => {
     const action = isCertified ? "menonaktifkan" : "menghapus";
