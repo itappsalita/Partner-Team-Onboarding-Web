@@ -12,8 +12,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Use relational queries to include PMO details and team counts
-    const allRequests = await db.query.requestForPartners.findMany({
+    // Define query options based on role
+    const isPartner = (session.user as any).role === "PARTNER";
+    
+    const queryOptions: any = {
       with: {
         pmo: {
           columns: {
@@ -22,6 +24,7 @@ export async function GET(req: Request) {
           }
         },
         dataTeamPartners: {
+          where: isPartner ? eq(dataTeamPartners.partnerId, (session.user as any).id) : undefined,
           with: {
             teams: {
               columns: {
@@ -31,11 +34,19 @@ export async function GET(req: Request) {
           }
         }
       },
-      orderBy: (requests, { desc }) => [desc(requests.createdAt)],
-    });
+      orderBy: (requests: any, { desc }: any) => [desc(requests.createdAt)],
+    };
+
+    const allRequests = await db.query.requestForPartners.findMany(queryOptions);
+
+    // If partner, filter out requests that don't have any associated assignments for them
+    let filteredRequests = allRequests;
+    if (isPartner) {
+        filteredRequests = allRequests.filter(req => req.dataTeamPartners.length > 0);
+    }
 
     // Calculate totalRegisteredTeams for each request (excluding CANCELED assignments)
-    const requestsWithTotals = allRequests.map(req => {
+    const requestsWithTotals = filteredRequests.map(req => {
       const activeAssignments = req.dataTeamPartners.filter(dt => dt.status !== 'CANCELED');
       const totalRegisteredTeams = activeAssignments.reduce((acc, dt) => acc + dt.teams.length, 0);
       // Remove dataTeamPartners from the response

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Modal from "./Modal";
+import TeamForm from "./TeamForm";
+import MemberWizard from "./MemberWizard";
 
 interface TeamManagementProps {
   assignment: any; // dataTeamPartner object
@@ -33,38 +35,8 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [requesting, setRequesting] = useState<string | null>(null);
   
-  // Form States
-  const [submitting, setSubmitting] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [teamForm, setTeamForm] = useState({
-    id: null as string | null,
-    teamNumber: "",
-    leaderName: "",
-    leaderPhone: "",
-    tkpk1Number: "",
-    tkpk1File: null as File | null,
-    firstAidNumber: "",
-    firstAidFile: null as File | null,
-    electricalNumber: "",
-    electricalFile: null as File | null,
-    position: "Team Leader",
-    location: ""
-  });
-
-  const [memberForm, setMemberForm] = useState({
-    nik: "",
-    phone: "",
-    ktpFile: null as File | null,
-    selfieFile: null as File | null,
-  });
-
-  // OCR & Wizard States
-  const [memberStep, setMemberStep] = useState(1); // 1: Scan, 2: Form
-  const [isScanning, setIsScanning] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
-  const [ocrError, setOcrError] = useState<string | null>(null);
-  const [ktpPreview, setKtpPreview] = useState<string | null>(null);
-  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [teamFormInitial, setTeamFormInitial] = useState<any>(null);
+  const [memberFormInitial, setMemberFormInitial] = useState<any>(null); // Placeholder if needed
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -96,7 +68,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
   const openAddTeamModal = () => {
     setIsEditMode(false);
-    setTeamForm({
+    setTeamFormInitial({
       id: null,
       teamNumber: (teams.length + 1).toString(),
       leaderName: "",
@@ -115,7 +87,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
   const openEditTeamModal = (team: any) => {
     setIsEditMode(true);
-    setTeamForm({
+    setTeamFormInitial({
       id: team.id,
       teamNumber: team.teamNumber.toString(),
       leaderName: team.leaderName || "",
@@ -132,161 +104,6 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     setIsTeamModalOpen(true);
   };
 
-  const handleSaveTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isStructuralReadOnly) return;
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      if (isEditMode && teamForm.id) {
-        formData.append("id", teamForm.id.toString());
-      }
-      formData.append("dataTeamPartnerId", assignment.id.toString());
-      formData.append("teamNumber", teamForm.teamNumber);
-      formData.append("leaderName", teamForm.leaderName);
-      formData.append("leaderPhone", teamForm.leaderPhone);
-      formData.append("tkpk1Number", teamForm.tkpk1Number);
-      formData.append("position", teamForm.position);
-      formData.append("location", teamForm.location);
-      formData.append("firstAidNumber", teamForm.firstAidNumber);
-      formData.append("electricalNumber", teamForm.electricalNumber);
-      
-      if (teamForm.tkpk1File) formData.append("tkpk1File", teamForm.tkpk1File);
-      if (teamForm.firstAidFile) formData.append("firstAidFile", teamForm.firstAidFile);
-      if (teamForm.electricalFile) formData.append("electricalFile", teamForm.electricalFile);
-      
-      const url = "/api/data-team/teams";
-      const method = isEditMode ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method: method,
-        body: formData,
-      });
-
-      if (res.ok) {
-        setIsTeamModalOpen(false);
-        fetchTeams();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Gagal menyimpan tim");
-      }
-    } catch (err) {
-      alert("Sistem error.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleOcrScan = async () => {
-    if (!memberForm.ktpFile) return;
-    setIsScanning(true);
-    setOcrProgress(0);
-    setOcrError(null);
-
-    let scanSuccess = false;
-
-    try {
-      const formData = new FormData();
-      formData.append("image", memberForm.ktpFile);
-
-      const res = await fetch("/api/ocr/ktp-ai", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 429) {
-          setOcrError("Batas penggunaan AI tercapai (Quota Exceeded). Silakan isi data secara manual.");
-          setMemberStep(2); // Immediate fallback if quota hit
-          return;
-        }
-        throw new Error(data.error || "Gagal menghubungi layanan AI");
-      }
-
-      setMemberForm(prev => ({
-        ...prev,
-        nik: data.nik || prev.nik,
-        name: (data.name || prev.name).toUpperCase().trim()
-      }));
-      
-      scanSuccess = true;
-    } catch (err: any) {
-      console.error("AI OCR Error:", err);
-      if (!ocrError) {
-        setOcrError("Gagal memproses KTP via AI. Silakan isi manual.");
-      }
-      setMemberStep(2); 
-    } finally {
-      if (scanSuccess) {
-        // Animation 0 -> 100 in exactly 1 second
-        const startTime = Date.now();
-        const duration = 1000;
-        
-        const animate = async () => {
-          return new Promise<void>((resolve) => {
-            const interval = setInterval(() => {
-              const elapsed = Date.now() - startTime;
-              const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
-              setOcrProgress(progress);
-              
-              if (progress >= 100) {
-                clearInterval(interval);
-                resolve();
-              }
-            }, 16); // ~60fps
-          });
-        };
-        
-        await animate();
-        await new Promise(r => setTimeout(r, 300)); // Small pause at 100% for feeling
-        setMemberStep(2);
-      }
-      setIsScanning(false);
-    }
-  };
-
-  const handleKtpFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setMemberForm({ ...memberForm, ktpFile: file });
-      const reader = new FileReader();
-      reader.onloadend = () => setKtpPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSelfieFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setMemberForm({ ...memberForm, selfieFile: file });
-      const reader = new FileReader();
-      reader.onloadend = () => setSelfiePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeTeam || isStructuralReadOnly) return;
-    
-    // NIK Validation
-    if (memberForm.nik.length !== 16) {
-      alert("NIK KTP harus berjumlah tepat 16 digit.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("teamId", activeTeam.id.toString());
-      formData.append("memberNumber", (activeTeam.members?.length + 1 || 1).toString());
-      formData.append("name", memberForm.name);
-      formData.append("position", memberForm.position);
-      formData.append("nik", memberForm.nik);
-      formData.append("phone", memberForm.phone);
-      if (memberForm.ktpFile) formData.append("ktpFile", memberForm.ktpFile);
       if (memberForm.selfieFile) formData.append("selfieFile", memberForm.selfieFile);
 
       const res = await fetch("/api/data-team/members", {
@@ -735,244 +552,29 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
         </main>
       </div>
 
-      {/* Modal Tambah/Edit Tim */}
-      <Modal 
-        isOpen={isTeamModalOpen} 
-        onClose={() => setIsTeamModalOpen(false)} 
-        title={isEditMode ? "Edit Data Tim Lapangan" : "Buat Tim Lapangan Baru"}
-      >
-        <form onSubmit={handleSaveTeam} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-             <div className="md:col-span-1">
-               <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">No Tim</label>
-               <input type="number" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold disabled:opacity-50" value={teamForm.teamNumber} onChange={e => setTeamForm({...teamForm, teamNumber: e.target.value})} required disabled={isEditMode} />
-             </div>
-             <div className="md:col-span-3">
-               <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Nama Team Leader</label>
-               <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold" value={teamForm.leaderName} onChange={e => setTeamForm({...teamForm, leaderName: e.target.value})} required placeholder="Masukkan nama lengkap leader" />
-             </div>
-          </div>
+      {/* Modular Team Form */}
+      {isTeamModalOpen && teamFormInitial && (
+        <TeamForm 
+          isOpen={isTeamModalOpen}
+          onClose={() => setIsTeamModalOpen(false)}
+          assignment={assignment}
+          isEditMode={isEditMode}
+          initialData={teamFormInitial}
+          onSave={fetchTeams}
+          isStructuralReadOnly={isStructuralReadOnly}
+        />
+      )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">No Handphone Leader</label>
-              <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold" value={teamForm.leaderPhone} onChange={e => setTeamForm({...teamForm, leaderPhone: e.target.value})} required placeholder="Contoh: 081234567890" />
-            </div>
-            <div>
-              <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Posisi</label>
-              <input type="text" className="w-full px-4 py-3 bg-alita-gray-100 border border-alita-gray-200 rounded-xl text-sm font-bold text-alita-gray-500 cursor-not-allowed" value={teamForm.position} disabled />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-black text-alita-gray-400 uppercase tracking-[0.1em] mb-2">Lokasi Penugasan</label>
-            <input type="text" className="w-full px-4 py-3 bg-alita-gray-100 border border-alita-gray-200 rounded-xl text-sm font-bold text-alita-gray-500 cursor-not-allowed" value={teamForm.location} disabled />
-          </div>
-
-          <div className="border-2 border-alita-gray-50 rounded-2xl p-6 bg-alita-gray-50/30">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-alita-gray-400 mb-5 flex items-center gap-2">
-              <span className="w-4 h-[2px] bg-alita-gray-200"></span>
-              Sertifikat Keahlian
-            </h4>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">Nomor Sertifikat TKPK 1</label>
-                <input type="text" className="w-full px-4 py-3 bg-alita-white border border-alita-gray-200 rounded-xl text-sm font-bold shadow-sm focus:border-alita-orange transition-colors" value={teamForm.tkpk1Number} onChange={e => setTeamForm({...teamForm, tkpk1Number: e.target.value})} required placeholder="Input Nomor Sertifikat" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">File Sertifikat TKPK 1 (PDF/JPG)</label>
-                <div className="flex flex-col gap-2">
-                   {isEditMode && activeTeam?.tkpk1FilePath && <p className="text-[10px] font-bold text-alita-orange italic">Sudah ada file. Unggah baru untuk mengganti.</p>}
-                   <input type="file" className="block w-full text-xs text-alita-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-[11px] file:font-black file:bg-alita-black file:text-alita-white hover:file:bg-alita-orange file:transition-colors" onChange={e => setTeamForm({...teamForm, tkpk1File: e.target.files?.[0] || null})} required={!isEditMode && !activeTeam?.tkpk1FilePath} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-alita-gray-100 mt-6">
-                 <div>
-                    <label className="block text-[11px] font-bold text-alita-black mb-2">No. First Aid (Opsional)</label>
-                    <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" value={teamForm.firstAidNumber} onChange={e => setTeamForm({...teamForm, firstAidNumber: e.target.value})} />
-                    <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setTeamForm({...teamForm, firstAidFile: e.target.files?.[0] || null})} />
-                 </div>
-                 <div>
-                    <label className="block text-[11px] font-bold text-alita-black mb-2">No. Electrical (Opsional)</label>
-                    <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" value={teamForm.electricalNumber} onChange={e => setTeamForm({...teamForm, electricalNumber: e.target.value})} />
-                    <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setTeamForm({...teamForm, electricalFile: e.target.files?.[0] || null})} />
-                 </div>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" disabled={submitting}>
-            {submitting ? "Proses Menyimpan..." : isEditMode ? "Perbarui Data Tim" : "Simpan Tim Baru"}
-          </button>
-        </form>
-      </Modal>
-
-      {/* Modal Tambah Anggota (Wizard OCR) */}
-      <Modal 
-        isOpen={isMemberModalOpen} 
-        onClose={() => {
-          setIsMemberModalOpen(false);
-          setMemberStep(1);
-          setKtpPreview(null);
-          setSelfiePreview(null);
-          setMemberForm({ name: "", position: "", nik: "", phone: "", ktpFile: null, selfieFile: null });
-        }} 
-        title={memberStep === 1 ? "Pindai KTP Anggota Baru" : "Detail Data Anggota"}
-      >
-        {memberStep === 1 ? (
-          <div className="flex flex-col items-center">
-            <div className="w-full relative group">
-              <div 
-                className={`w-full aspect-[1.58/1] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden ${
-                  ktpPreview ? 'border-alita-orange bg-alita-gray-50' : 'border-alita-gray-200 bg-alita-gray-50 hover:bg-alita-gray-100'
-                }`}
-              >
-                {ktpPreview ? (
-                  <div className="w-full h-full p-2">
-                    <img src={ktpPreview} alt="KTP Preview" className="w-full h-full object-contain rounded-xl" />
-                    {isScanning && (
-                      <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-alita-white z-10">
-                        <div className="w-12 h-12 border-4 border-alita-orange/20 border-l-alita-orange rounded-full animate-spin mb-4" />
-                        <p className="font-black text-xs tracking-widest animate-pulse">PROSES SCANNING... {ocrProgress}%</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center text-center p-8 group-hover:scale-105 transition-transform">
-                    <div className="text-6xl mb-4 group-hover:rotate-6 transition-transform">🪪</div>
-                    <p className="text-sm font-black text-alita-black tracking-tight mb-2">Unggah Foto KTP</p>
-                    <p className="text-xs font-bold text-alita-gray-400">Ekstrak data NIK & Nama secara otomatis</p>
-                  </div>
-                )}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleKtpFileChange} 
-                  className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                />
-              </div>
-            </div>
-
-            <p className="mt-6 text-[10px] font-bold text-alita-gray-400 text-center leading-relaxed">
-              * Pastikan pencahayaan cukup dan teks pada KTP terlihat jelas agar sistem AI dapat membaca dengan akurat.
-            </p>
-
-            <div className="w-full mt-8">
-              <button 
-                onClick={handleOcrScan}
-                disabled={!memberForm.ktpFile || isScanning}
-                className="w-full py-4 bg-alita-black text-alita-white rounded-xl text-xs font-black tracking-[0.2em] hover:bg-alita-gray-800 disabled:opacity-30 disabled:grayscale transition-all shadow-xl uppercase"
-              >
-                {isScanning ? "SCANNING..." : "MULAI PINDAI KTP"}
-              </button>
-              
-              <div className="mt-6 flex items-center justify-center gap-2 opacity-50">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-alita-gray-400">Powered by</span>
-                <span className="text-[10px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-red-500">Google AI</span>
-              </div>
-            </div>
-            {ocrError && <p className="mt-4 text-[11px] font-bold text-red-500 bg-red-50 px-4 py-2 rounded-lg border border-red-100">{ocrError}</p>}
-          </div>
-        ) : (
-          <form onSubmit={handleAddMember} className="space-y-6">
-            <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl flex items-center gap-4">
-              <span className="text-xl">✨</span>
-              <p className="text-[11px] font-bold text-blue-800 leading-normal">
-                Verifikasi data di bawah ini. Pastikan Nama dan NIK sesuai dengan kartu identitas personil. Jika data tidak sesuai, silakan klik tombol Kembali untuk mengulang pindaian KTP.
-              </p>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Nama Lengkap (Sesuai KTP)</label>
-                <input 
-                  type="text" 
-                  className="w-full px-4 py-3 bg-alita-gray-100/50 border border-alita-gray-200 rounded-xl text-sm font-bold cursor-not-allowed select-none text-alita-gray-500" 
-                  value={memberForm.name} 
-                  readOnly 
-                  required 
-                  title="Data terkunci sesuai hasil pindaian AI KTP"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">NIK KTP (16 Digit)</label>
-                   <input 
-                    type="text" 
-                    className="w-full px-4 py-3 bg-alita-gray-100/50 border border-alita-gray-200 rounded-xl text-sm font-bold cursor-not-allowed select-none text-alita-gray-500" 
-                    value={memberForm.nik} 
-                    readOnly 
-                    required 
-                    title="Data terkunci sesuai hasil pindaian AI KTP"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Nomor WhatsApp</label>
-                  <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.phone} onChange={e => setMemberForm({...memberForm, phone: e.target.value})} required placeholder="0812xxxx" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Target Posisi Pekerjaan</label>
-                <select 
-                  className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" 
-                  value={memberForm.position} 
-                  onChange={e => setMemberForm({...memberForm, position: e.target.value})} 
-                  required
-                >
-                  <option value="">-- Pilih Posisi --</option>
-                  <option value="Technician">Technician</option>
-                  <option value="Helper">Helper</option>
-                  <option value="Driver">Driver</option>
-                </select>
-              </div>
-
-              {/* Selfie Upload Section */}
-              <div className="border-2 border-dashed border-alita-gray-200 rounded-2xl p-6 bg-alita-gray-50/50 hover:bg-alita-gray-100/50 transition-all relative group">
-                <div className="flex flex-col items-center text-center">
-                  {selfiePreview ? (
-                    <div className="relative w-24 h-24 mb-3">
-                      <img src={selfiePreview} alt="Selfie Preview" className="w-full h-full object-cover rounded-xl border-2 border-alita-orange shadow-md" />
-                      <div className="absolute -top-2 -right-2 bg-alita-orange text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-lg">✓</div>
-                    </div>
-                  ) : (
-                    <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🤳</div>
-                  )}
-                  <p className="text-[11px] font-black text-alita-black tracking-tight mb-1">Upload Foto Selfie Anggota</p>
-                  <p className="text-[9px] font-bold text-alita-gray-400 uppercase tracking-widest">Wajib untuk verifikasi identitas</p>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleSelfieFileChange} 
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    required
-                  />
-                </div>
-              </div>
-
-              {memberForm.ktpFile && (
-                <div className="flex items-center gap-4 bg-alita-gray-50 border border-alita-gray-100 p-4 rounded-xl">
-                  <div className="w-10 h-10 bg-alita-white rounded flex items-center justify-center text-lg border border-alita-gray-200 shadow-sm">📄</div>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="text-[11px] font-black text-alita-black truncate uppercase">{memberForm.ktpFile.name}</div>
-                    <div className="text-[9px] font-bold text-alita-gray-400 tracking-wider">FILE KTP TERUNGGAH</div>
-                  </div>
-                  <button type="button" onClick={() => setMemberStep(1)} className="text-[10px] font-black text-alita-orange hover:brightness-90 uppercase">Ganti File</button>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 pt-4">
-               <button type="button" className="col-span-1 py-3.5 border-2 border-alita-gray-50 rounded-xl text-[10px] font-black text-alita-gray-400 hover:bg-alita-gray-50 transition-all uppercase" onClick={() => setMemberStep(1)} disabled={submitting}>Kembali</button>
-               <button type="submit" className="col-span-2 py-3.5 bg-alita-black text-alita-white rounded-xl text-[10px] font-black tracking-[0.15em] hover:bg-alita-orange transition-all uppercase shadow-lg shadow-black/10 disabled:opacity-50" disabled={submitting}>
-                 {submitting ? "PROSES MENYIMPAN..." : "SIMPAN ANGGOTA TIM"}
-               </button>
-            </div>
-          </form>
-        )}
-      </Modal>
+      {/* Modular Member Wizard */}
+      {isMemberModalOpen && (
+        <MemberWizard 
+          isOpen={isMemberModalOpen}
+          onClose={() => setIsMemberModalOpen(false)}
+          activeTeam={activeTeam}
+          onSave={fetchTeams}
+          isStructuralReadOnly={isStructuralReadOnly}
+        />
+      )}
     </div>
   );
 }

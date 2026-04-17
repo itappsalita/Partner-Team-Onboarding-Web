@@ -3,8 +3,7 @@ import { db } from "../../../../db";
 import { teamMembers, teams } from "../../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import fs from "fs-extra";
 import { eq, and } from "drizzle-orm";
 import { generateUuid } from "../../../../lib/uuid";
 
@@ -12,11 +11,25 @@ const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const teamId = searchParams.get("teamId");
 
     if (!teamId) {
       return NextResponse.json({ error: "Missing teamId" }, { status: 400 });
+    }
+
+    // Security Check: If partner, ensure they own the team
+    if ((session.user as any).role === "PARTNER") {
+        const team = await db.query.teams.findFirst({
+            where: eq(teams.id, teamId),
+            with: { dataTeamPartner: true }
+        });
+        if (!team || team.dataTeamPartner.partnerId !== (session.user as any).id) {
+            return NextResponse.json({ error: "Access Denied: team not found or belongs to another partner" }, { status: 403 });
+        }
     }
 
     const allMembers = await db.query.teamMembers.findMany({
@@ -48,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields (Name, NIK, KTP Photo, and Selfie Photo are mandatory)" }, { status: 400 });
     }
 
-    // 1. Quota Check
+    // 1. Quota & Security Check
     const currentTeam = await db.query.teams.findFirst({
         where: eq(teams.id, teamId),
         with: {
@@ -58,6 +71,13 @@ export async function POST(req: Request) {
     });
 
     if (!currentTeam) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+
+    // Security Check: If partner, ensure they own the team
+    if ((session.user as any).role === "PARTNER") {
+        if (currentTeam.dataTeamPartner.partnerId !== (session.user as any).id) {
+            return NextResponse.json({ error: "Access Denied: team not found or belongs to another partner" }, { status: 403 });
+        }
+    }
     const mQuota = currentTeam.dataTeamPartner.request.membersPerTeam || 0;
     if (mQuota > 0 && currentTeam.members.length >= mQuota) {
         return NextResponse.json({ error: `Kuota Anggota Tim sudah terpenuhi (${mQuota} orang).` }, { status: 400 });
@@ -70,18 +90,18 @@ export async function POST(req: Request) {
     if (activeMember) return NextResponse.json({ error: "NIK sudah aktif di tim lain." }, { status: 400 });
 
     // 3. Handle KTP Upload
-    await mkdir(UPLOAD_DIR, { recursive: true });
+    await fs.ensureDir(UPLOAD_DIR);
     const bytes = await ktpFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const filename = `ktp_${Date.now()}_${ktpFile.name.replace(/\s+/g, '_')}`;
-    await writeFile(join(UPLOAD_DIR, filename), buffer);
+    await fs.writeFile(join(UPLOAD_DIR, filename), buffer);
     const ktpFilePath = `/uploads/${filename}`;
 
     // 4. Handle Selfie Upload
     const selfieBytes = await selfieFile.arrayBuffer();
     const selfieBuffer = Buffer.from(selfieBytes);
     const selfieFilename = `selfie_${Date.now()}_${selfieFile.name.replace(/\s+/g, '_')}`;
-    await writeFile(join(UPLOAD_DIR, selfieFilename), selfieBuffer);
+    await fs.writeFile(join(UPLOAD_DIR, selfieFilename), selfieBuffer);
     const selfieFilePath = `/uploads/${selfieFilename}`;
 
     // 5. Returning Member Logic (Check for previously certified records)

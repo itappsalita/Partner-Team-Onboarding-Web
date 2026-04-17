@@ -8,24 +8,43 @@ import { join } from "path";
 import { eq } from "drizzle-orm";
 import { generateUuid } from "../../../../lib/uuid";
 
+import fs from "fs-extra";
+
 const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
 const saveFile = async (file: File | null, prefix: string) => {
   if (!file || file.size === 0) return null;
+  
+  // Ensure directory exists
+  await fs.ensureDir(UPLOAD_DIR);
+  
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   const filename = `${prefix}_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-  await writeFile(join(UPLOAD_DIR, filename), buffer);
+  await fs.writeFile(join(UPLOAD_DIR, filename), buffer);
   return `/uploads/${filename}`;
 };
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const dataTeamPartnerId = searchParams.get("dataTeamPartnerId");
 
     if (!dataTeamPartnerId) {
       return NextResponse.json({ error: "Missing dataTeamPartnerId" }, { status: 400 });
+    }
+
+    // Security Check: If partner, ensure they own this dataTeamPartner assignment
+    if ((session.user as any).role === "PARTNER") {
+        const assignment = await db.query.dataTeamPartners.findFirst({
+            where: and(eq(dataTeamPartners.id, dataTeamPartnerId), eq(dataTeamPartners.partnerId, (session.user as any).id))
+        });
+        if (!assignment) {
+            return NextResponse.json({ error: "Access Denied: assignment not found or belongs to another partner" }, { status: 403 });
+        }
     }
 
     // Fetch teams for the specific assignment, including their members
@@ -51,6 +70,17 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const dataTeamPartnerId = formData.get("dataTeamPartnerId") as string;
+    
+    // Security Check: Ensure partner owns the assignment they are adding team to
+    if ((session.user as any).role === "PARTNER") {
+        const assignment = await db.query.dataTeamPartners.findFirst({
+            where: and(eq(dataTeamPartners.id, dataTeamPartnerId), eq(dataTeamPartners.partnerId, (session.user as any).id))
+        });
+        if (!assignment) {
+            return NextResponse.json({ error: "Access Denied: assignment not found or belongs to another partner" }, { status: 403 });
+        }
+    }
+
     const teamNumber = parseInt(formData.get("teamNumber") as string);
     const leaderName = formData.get("leaderName") as string;
     const leaderPhone = formData.get("leaderPhone") as string;
