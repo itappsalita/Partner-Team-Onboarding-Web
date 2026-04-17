@@ -118,7 +118,7 @@ export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: Assig
             <option value="">-- Pilih Request --</option>
             {requests.map(req => (
               <option key={req.id} value={req.id}>
-                #{req.id} - {req.sowPekerjaan.substring(0, 40)}... ({req.provinsi})
+                #{req.displayId} - {req.sowPekerjaan.substring(0, 40)}... ({req.jumlahKebutuhan} tim)
               </option>
             ))}
           </select>
