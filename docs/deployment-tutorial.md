@@ -141,6 +141,16 @@ Tunggu sekitar 30 detik. Jika berhasil, domain Anda sekarang sudah memiliki ikon
 
 ---
 
+## Bab 7: Verifikasi Dokumentasi API
+
+Selangkah lagi! Setelah aplikasi dapat diakses, sangat disarankan untuk memeriksa portal dokumentasi teknis:
+
+1.  Akses URL: `https://domain-anda.id/api-docs`
+2.  **Gunakan Akun Admin** untuk login.
+3.  Pastikan Anda melihat daftar API seperti **Assignments**, **Teams**, dan **Members**. Jika halaman ini muncul, berarti seluruh mesin backend (`Next.js`), database (`MySQL`), dan dokumentasi (`Swagger`) berjalan dengan sempurna.
+
+---
+
 ## 🆘 Troubleshooting: Apa yang Harus Dilakukan Jika Error?
 Jika aplikasi tidak mau jalan setelah `docker compose up`, lihat rahasia di balik layarnya dengan mengetik:
 ```bash

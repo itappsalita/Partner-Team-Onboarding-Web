@@ -46,5 +46,6 @@ export const config = {
     "/users/:path*",
     "/qa-training/:path*",
     "/certificates/:path*",
+    "/api-docs/:path*",
   ],
 };

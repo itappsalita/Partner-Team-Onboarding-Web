@@ -8,6 +8,7 @@ Sistem Manajemen Onboarding Partner untuk **PT. Alita Praya Mitra**. Aplikasi in
 - **Ekspor Excel Premium**: Fitur ekspor data tim per penugasan yang mendukung penyisipan **Foto KTP dan Foto Selfie** secara langsung ke dalam baris Excel menggunakan `exceljs`.
 - **Mesin Sertifikat PDF (Puppeteer)**: Penerbitan sertifikat kompetensi berbasis PDF yang dirender secara presisi menggunakan mesin Chromium, lengkap dengan QR Code validasi.
 - **Smart Credential Issuance**: Logika penerbitan akses (Email & Password) yang cerdas; mencegah duplikasi file sertifikat saat pembaruan kredensial dilakukan.
+- **Dokumentasi API Interaktif (Swagger)**: Portal dokumentasi teknis di `/api-docs` yang memungkinkan pengujian API secara langsung (*live testing*) bagi tim teknis Alita.
 - **Standarisasi UI/UX Modern**: Antarmuka premium dengan sistem *badge* bergaya *rounded-pill* dan tombol aksi berbasis ikon SVG yang seragam di seluruh modul.
 - **Dashboard Real-Time Berbasis Role**: 
   - **Internal Alita**: Prioritas tampilan permintaan dan mitra aktif.
@@ -24,6 +25,7 @@ Sistem Manajemen Onboarding Partner untuk **PT. Alita Praya Mitra**. Aplikasi in
 - **Autentikasi**: [NextAuth.js](https://next-auth.js.org/)
 - **PDF Engine**: [Puppeteer](https://pptr.dev/)
 - **Excel Engine**: [ExcelJS](https://github.com/exceljs/exceljs)
+- **API Documentation**: [Swagger (OpenAPI 3.0)](https://swagger.io/)
 
 ## 📦 Panduan Instalasi
 
@@ -74,6 +76,7 @@ Sangat penting untuk memastikan data unggahan personil tidak hilang. Konfigurasi
 - **Sinkronisasi Status Proaktif**: Sistem menggunakan fungsi *cascading recalculation* di level database utilitas. Setiap perubahan pada anggota tim atau detail tim akan secara otomatis memperbarui status di level penugasan (`ASG`) hingga request (`REQ`) utama.
 - **Veteran/Returning Personnel**: Sistem secara otomatis mendeteksi NIK yang pernah terdaftar (status `isActive=0`) untuk memulihkan data sertifikat dan kredensial lama, memfasilitasi penugasan ulang yang cepat.
 - **Penyimpanan Media**: Dokumen teknis dan foto personil disimpan di `/public/uploads/`. Pastikan folder ini memiliki izin akses yang tepat pada lingkungan produksi.
+- **Dokumentasi API (Swagger)**: Portal tersedia di `/api-docs`. Seluruh endpoint dilindungi oleh autentikasi untuk menjaga keamanan data operasional. Informasi teknis rute (`GET`, `POST`, `PUT`, `DELETE`) dan skema data dapat diuji langsung dari portal ini untuk mempercepat integrasi atau audit sistem.
 
 ---
 © 2026 PT. Alita Praya Mitra. Developed with Focus on Efficiency & UX Excellence.

@@ -1,26 +1,28 @@
-# Step 8: Documentation & Handover
+# Step 8: Documentation & Handover (REVISED)
 
-Fase pamungkas dalam iterasi pengembangan aplikasi internal (B2B/Enterprise) adalah perapian kode dan dokumentasi untuk pemindahan tata kelola operasional (Handover) kepada tim Alita / PMO bersangkutan.
+Fase dokumentasi dan serah terima (*Handover*) telah diselesaikan dengan standar teknis profesional. Sistem kini dilengkapi dengan dokumentasi kode internal (JSDocs) dan portal dokumentasi API interaktif.
 
-## 1. Mengisi JSDocs 
-Semua komponen kompleks dan Endpoint Rest API (*Route.ts*) wajib dikurasi dengan notasi standard JSDoc:
-```typescript
-/**
- * @description: Function endpoint untuk Menerima submission dari Procurement Phase 4
- * @param {NextRequest} req - Permintaan HTTP POST Berisi File (TOR/BAK) 
- * @returns {NextResponse}
- */
-export async function POST(req: NextRequest) { ... }
-```
-Hal ini untuk memudahkan model AI lanjutan bila dibutuhkan penambahan fitur di tahun mendatang (maintenance).
+## 1. Implementasi JSDocs Menyeluruh
+Seluruh logika bisnis kritis dan skema data telah dilengkapi dengan anotasi JSDoc untuk memudahkan pemeliharaan sistem di masa depan:
+- **`db/schema.ts`**: Penjelasan fungsi setiap tabel (RFP, Teams, Members) dan kolom-kolomnya.
+- **`db/status-utils.ts`**: Penjelasan mendalam mengenai logika sinkronisasi status otomatis (*cascading status updates*).
+- **`middleware.ts`**: Dokumentasi aturan proteksi rute berbasis peran (Role-Based Access Control).
+- **API Routes**: Seluruh endpoint (`GET`, `POST`, `PUT`, `DELETE`) telah dilengkapi dengan deskripsi fungsional.
 
-## 2. API Schema / Swagger Manual
-Bila memungkinkan, konversikan file Schema Drizzle dan Route Next.js API kedalam dokumentasi Swagger (atau sekedar MarkDown biasa `API_DOCS.md` di level root direktori) agar bila tim Front-End Native (Mobile Ops/Android) ingin menyambung ke Sistem Onboarding ini, mereka memiliki referensi Rest API yang akurat.
+## 2. Portal Dokumentasi API Interaktif (Swagger)
+Untuk memfasilitasi integrasi di masa depan, sistem kini memiliki portal dokumentasi API yang dapat diakses langsung.
+- **Rute Portal**: `/api-docs` (Memerlukan Login).
+- **Format**: [OpenAPI 3.0](https://swagger.io/).
+- **Fitur Live Testing**: Pengembang dapat mencoba langsung perintah API (seperti pembuatan tim atau penugasan anggota) melalui antarmuka browser tanpa perlu tools tambahan (seperti Postman).
+- **Raw Data**: Spesifikasi teknis dalam format JSON tersedia di `/api/docs`.
 
-## 3. Deployment Docs
-Tim infrastruktur Alita akan membutuhkan parameter Deploy:
-- Panduan *Environment Variable* mandatori (URL Database, Direktori Upload System Path).
-- Perintah *Building* production: `npm run build` dan `npm start`.
-- Kebutuhan versi node: `> 18.17.x` 
+## 3. Deployment & Operational Guide
+Tim infrastruktur Alita telah dibekali dengan:
+- **`docs/deployment-tutorial.md`**: Panduan lengkap instalasi server, Docker, hingga setup SSL menggunakan Nginx Proxy Manager.
+- **`docs/backup-strategy.md`**: Strategi pencadangan data otomatis untuk menjamin keamanan aset digital.
+- **`Dockerfile` Premium**: Konfigurasi kontainer yang dioptimalkan dengan dukungan Puppeteer untuk rendering PDF sertifikat.
 
-Demikian akhir dari panduan proses penciptaan (*Creation Workflow*) Aplikasi Partner Team Onboarding. Mengikuti urutan ini dari 01 hingga 08 akan menjamin kelancaran, keamanan dan kesempurnaan implementasi.
+---
+Dengan selesainya dokumentasi ini, sistem **Partner Team Onboarding** telah sepenuhnya siap untuk dioperasikan oleh tim **PT. Alita Praya Mitra**. Seluruh dokumentasi teknis ini akan menjamin sistem tetap dapat dikembangkan dan dipelihara dengan mudah di masa mendatang.
+
+© 2026 PT. Alita Praya Mitra.
