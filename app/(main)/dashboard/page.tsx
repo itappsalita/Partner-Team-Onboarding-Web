@@ -6,14 +6,14 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, Tooltip as Recha
 
 const statCardConfig = [
   { 
-    key: "partners", label: "Total Partners", 
-    color: "from-orange-500 to-amber-500", bgLight: "bg-orange-50", textColor: "text-orange-600",
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-  },
-  { 
     key: "requests", label: "Total Requests",
     color: "from-blue-500 to-cyan-500", bgLight: "bg-blue-50", textColor: "text-blue-600",
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+  },
+  { 
+    key: "partners", label: "Total Partners", 
+    color: "from-orange-500 to-amber-500", bgLight: "bg-orange-50", textColor: "text-orange-600",
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   },
   { 
     key: "teams", label: "Allocated Teams",
@@ -36,20 +36,29 @@ export default function DashboardHome() {
   const [provinceData, setProvinceData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isPartner = session?.user?.role === 'PARTNER';
+  const isPartner = (session?.user as any)?.role === 'PARTNER';
 
   // Dynamic config based on role
-  const dynamicCards = statCardConfig.map(card => {
-    if (isPartner && card.key === 'partners') {
-      return { 
-        ...card, 
+  let dynamicCards = [...statCardConfig];
+  
+  if (isPartner) {
+    // 1. Find the partners card index
+    const partnerCardIdx = dynamicCards.findIndex(c => c.key === 'partners');
+    
+    if (partnerCardIdx !== -1) {
+      // 2. Transform it to Certified Members card
+      const certifiedCard = { 
+        ...dynamicCards[partnerCardIdx], 
         key: 'certifiedMembers', 
         label: "Total Certified Members",
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       };
+      
+      // 3. Remove from current position and push to the end (rightmost)
+      dynamicCards.splice(partnerCardIdx, 1);
+      dynamicCards.push(certifiedCard);
     }
-    return card;
-  });
+  }
 
   useEffect(() => {
     fetch("/api/dashboard/stats")
@@ -197,7 +206,7 @@ export default function DashboardHome() {
                         stroke="none"
                         labelLine={false}
                         label={({
-                          cx, cy, midAngle, innerRadius, outerRadius, value
+                          cx, cy, midAngle = 0, innerRadius, outerRadius, value
                         }) => {
                           const RADIAN = Math.PI / 180;
                           const radius = innerRadius + (outerRadius - innerRadius) * 0.5;

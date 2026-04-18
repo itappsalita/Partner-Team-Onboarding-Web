@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isPartner = session.user.role === 'PARTNER';
+    const isPartner = (session?.user as any)?.role === 'PARTNER';
     const partnerId = isPartner ? (session.user as any).id : null;
 
     // 1. KPI Basic Counts
@@ -32,14 +32,18 @@ export async function GET() {
     let membersQuery = db.select({ value: count() })
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(ne(teams.status, 'CANCELED'));
+      .where(and(ne(teams.status, 'CANCELED'), eq(teamMembers.isActive, 1)));
     
     if (isPartner) {
       membersQuery = db.select({ value: count() })
         .from(teamMembers)
         .innerJoin(teams, eq(teamMembers.teamId, teams.id))
         .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
+        .where(and(
+          ne(teams.status, 'CANCELED'), 
+          eq(dataTeamPartners.partnerId, partnerId!),
+          eq(teamMembers.isActive, 1)
+        )) as any;
     }
     const [membersCount] = await membersQuery;
 
@@ -47,7 +51,11 @@ export async function GET() {
     let certifiedQuery = db.select({ value: count() })
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(and(ne(teams.status, 'CANCELED'), isNotNull(teamMembers.certificateFilePath)));
+      .where(and(
+        ne(teams.status, 'CANCELED'), 
+        isNotNull(teamMembers.certificateFilePath),
+        eq(teamMembers.isActive, 1)
+      ));
 
     if (isPartner) {
       certifiedQuery = db.select({ value: count() })
@@ -57,7 +65,8 @@ export async function GET() {
         .where(and(
           ne(teams.status, 'CANCELED'), 
           isNotNull(teamMembers.certificateFilePath),
-          eq(dataTeamPartners.partnerId, partnerId!)
+          eq(dataTeamPartners.partnerId, partnerId!),
+          eq(teamMembers.isActive, 1)
         )) as any;
     }
     const [certifiedMembersCount] = await certifiedQuery;
@@ -118,15 +127,15 @@ export async function GET() {
     const [evaluatedTeamsCount] = await evaluatedQuery;
     
     // Other metrics
-    let pendingCertsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED')));
+    let pendingCertsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isActive, 1), eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED')));
     if (isPartner) {
-      pendingCertsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
+      pendingCertsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isActive, 1), eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
     }
     const [pendingCerts] = await pendingCertsQuery;
     
-    let issuedEmailsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED')));
+    let issuedEmailsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isActive, 1), isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED')));
     if (isPartner) {
-      issuedEmailsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
+      issuedEmailsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isActive, 1), isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
     }
     const [issuedEmails] = await issuedEmailsQuery;
 
