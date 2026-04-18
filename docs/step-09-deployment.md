@@ -4,6 +4,20 @@ Panduan ini dirancang khusus bagi Anda yang belum pernah melakukan deployment ap
 
 ---
 
+## Rekomendasi Spesifikasi Server
+
+Sangat disarankan untuk mengikuti spesifikasi berikut agar aplikasi dapat berjalan stabil, terutama saat menangani proses berat seperti **Penerbitan Sertifikat PDF** dan **Ekspor Excel Bermedia**.
+
+| Komponen | Lingkungan Staging (Uji Coba) | Lingkungan Production (Asli) |
+| :--- | :--- | :--- |
+| **Sistem Operasi** | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS (Recommended) |
+| **CPU** | 1-2 vCPU | 2-4 vCPU (Kencang untuk PDF) |
+| **RAM** | 2 GB | 4 GB - 8 GB (Aman untuk Chromium) |
+| **Storage (SSD)** | 20 GB | 40 GB - 80 GB (Tergantung volume Upload) |
+| **Docker Version** | 20.10+ | 20.10+ |
+
+---
+
 ## Bab 1: Masuk ke Dalam Server
 
 Setelah Anda membeli server (misal di DigitalOcean atau Alibaba Cloud), Anda akan mendapatkan **IP Address** dan **Password**.
