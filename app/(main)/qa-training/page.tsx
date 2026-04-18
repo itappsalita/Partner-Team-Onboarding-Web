@@ -208,7 +208,7 @@ export default function QaTrainingPage() {
           onClick={() => setFilter('ongoing')}
         >
           Sedang Berjalan
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${filter === 'ongoing' ? 'bg-alita-orange text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${filter === 'ongoing' ? 'bg-alita-orange text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
             {ongoingCount}
           </span>
         </button>
@@ -221,7 +221,7 @@ export default function QaTrainingPage() {
           onClick={() => setFilter('done')}
         >
           Selesai (Evaluated)
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${filter === 'done' ? 'bg-alita-black text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${filter === 'done' ? 'bg-alita-black text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
             {doneCount}
           </span>
         </button>
@@ -368,15 +368,16 @@ export default function QaTrainingPage() {
                           <>
                             {(!item.trainingProcess?.trainingDate || (mounted && new Date() <= new Date(item.trainingProcess.trainingDate))) && (
                               <button 
-                                className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap" 
+                                className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-2" 
                                 onClick={() => handleOpenSchedule(item)}
                               >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                                 {item.trainingProcess?.trainingDate ? "RESCHEDULE" : "SET SCHEDULE"}
                               </button>
                             )}
 
                             <button 
-                              className={`px-3 py-1.5 rounded text-[11px] font-bold transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2 ${
+                              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2 ${
                                 mounted && item.trainingProcess?.trainingDate && new Date() >= new Date(item.trainingProcess.trainingDate)
                                   ? 'bg-alita-black text-alita-white hover:bg-alita-gray-800'
                                   : 'bg-alita-gray-100 text-alita-gray-400 border border-alita-gray-200 cursor-not-allowed shadow-none'
@@ -385,6 +386,7 @@ export default function QaTrainingPage() {
                               disabled={!mounted || !item.trainingProcess?.trainingDate || new Date() < new Date(item.trainingProcess.trainingDate)}
                               title={!item.trainingProcess?.trainingDate ? "Set jadwal training terlebih dahulu" : "Evaluasi hanya dapat dilakukan setelah waktu training dimulai"}
                             >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                               <span>EVALUATION</span>
                               {!item.trainingProcess?.trainingDate && <span className="text-[10px]">🔒</span>}
                             </button>
@@ -392,10 +394,11 @@ export default function QaTrainingPage() {
                         )}
                         {(item.status === 'TRAINING_EVALUATED' || item.status === 'COMPLETED') && (
                           <button 
-                            className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-2" 
+                            className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-2" 
                             onClick={() => handleOpenEvaluation(item)}
                           >
-                            <span>📝 VIEW SUMMARY</span>
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <span>VIEW SUMMARY</span>
                             {item.status === 'COMPLETED' && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-black">CERTIFIED</span>}
                           </button>
                         )}

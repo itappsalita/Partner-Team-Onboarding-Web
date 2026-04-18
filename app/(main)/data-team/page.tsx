@@ -94,16 +94,17 @@ export default function DataTeamPage() {
     setCurrentPage(1);
   }, [searchSow, searchPartner, filterProvinsi, activeTab]);
 
-  const handleExport = async () => {
+  const handleExport = async (id?: string) => {
     try {
-      const res = await fetch('/api/data-team/export');
+      const urlParams = id ? `?id=${id}` : "";
+      const res = await fetch(`/api/data-team/export${urlParams}`);
       if (!res.ok) throw new Error("Gagal mengunduh file");
       
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Expert_Data_Team_Personnel_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `Expert_Data_Personnel_${id || 'All'}_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -289,15 +290,6 @@ export default function DataTeamPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {!isPartner && (
-            <button 
-              className="bg-alita-white text-alita-gray-600 border border-alita-gray-200 px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm hover:bg-alita-gray-50 active:scale-95 transition-all flex items-center gap-2"
-              onClick={handleExport}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export Excel
-            </button>
-          )}
           {isProcurement && (
             <button 
               className="bg-alita-black text-alita-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-alita-gray-800 active:scale-95 transition-all whitespace-nowrap" 
@@ -493,20 +485,36 @@ export default function DataTeamPage() {
                     <td className="px-6 py-5">
                       <div className="flex flex-wrap items-center gap-2">
                         {isPartner && getWorstCaseStatus(dt) === 'SOURCING' && (
-                          <button 
-                            className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap" 
-                            onClick={() => setSelectedAssignment(dt)}
-                          >
-                            MANAGE TEAMS
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-1.5" 
+                              onClick={() => setSelectedAssignment(dt)}
+                            >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                              MANAGE TEAMS
+                            </button>
+                          </div>
                         )}
                         {((isPartner && getWorstCaseStatus(dt) !== 'SOURCING') || (!isPartner)) && getWorstCaseStatus(dt) !== 'CANCELED' && (
-                          <button 
-                            className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap" 
-                            onClick={() => setSelectedAssignment(dt)}
-                          >
-                            VIEW DETAILS
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-1.5" 
+                              onClick={() => setSelectedAssignment(dt)}
+                            >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                              VIEW DETAILS
+                            </button>
+                            {!isPartner && (
+                              <button 
+                                className="px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 whitespace-nowrap" 
+                                title="Export Personnel to Excel"
+                                onClick={() => handleExport(dt.id)}
+                              >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <span className="text-[11px] font-bold uppercase tracking-tight">Download Excel</span>
+                              </button>
+                            )}
+                          </div>
                         )}
                         {getWorstCaseStatus(dt) === 'CANCELED' && (
                           <button 
@@ -519,9 +527,10 @@ export default function DataTeamPage() {
                         {isProcurement && getWorstCaseStatus(dt) !== 'CANCELED' && (
                           <>
                             <button 
-                              className="px-3 py-1.5 bg-alita-white border border-alita-orange/30 text-alita-orange rounded text-[11px] font-bold hover:bg-orange-50 transition-all shadow-sm active:scale-95 whitespace-nowrap" 
+                              className="px-3 py-1.5 bg-alita-white border border-alita-orange/30 text-alita-orange rounded-lg text-[11px] font-bold hover:bg-orange-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-1.5" 
                               onClick={() => handleEditDocs(dt)}
                             >
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               EDIT DOCS
                             </button>
                             {dt.teams?.every((t: any) => t.status === 'SOURCING') && (

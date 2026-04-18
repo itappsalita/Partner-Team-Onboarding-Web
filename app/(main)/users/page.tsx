@@ -163,10 +163,11 @@ export default function UsersPage() {
           <p className="text-alita-gray-500 text-sm font-medium">Kelola akun pengguna, peran, dan akses sistem.</p>
         </div>
         <button 
-          className="bg-alita-black text-alita-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-alita-gray-800 transition-all shadow-md active:scale-95 whitespace-nowrap" 
+          className="bg-alita-black text-alita-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-alita-gray-800 transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2" 
           onClick={handleOpenCreate}
         >
-          + Register New User
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+          Register New User
         </button>
       </div>
 
@@ -255,7 +256,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-5 text-sm text-alita-gray-600 font-medium">{user.email}</td>
                     <td className="px-6 py-5">
-                      <span className="px-2.5 py-1 bg-alita-gray-100 rounded text-[10px] font-black uppercase text-alita-gray-600 border border-alita-gray-200">
+                      <span className="px-3 py-1 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[9px] font-black uppercase text-alita-gray-500 tracking-wider shadow-sm">
                         {user.role}
                       </span>
                     </td>
@@ -271,20 +272,31 @@ export default function UsersPage() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
                         <button 
-                          className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95" 
+                          className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 flex items-center gap-2" 
                           onClick={() => handleOpenEdit(user)}
                         >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                           EDIT
                         </button>
                         <button 
-                          className={`px-3 py-1.5 rounded text-[11px] font-bold transition-all shadow-sm active:scale-95 min-w-[100px] border ${
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm active:scale-95 min-w-[120px] border flex items-center justify-center gap-2 ${
                             user.isActive === 1 
                               ? "bg-red-50 text-red-600 border-red-100 hover:bg-red-100" 
                               : "bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800"
                           }`}
                           onClick={() => toggleUserStatus(user)}
                         >
-                          {user.isActive === 1 ? "DEACTIVATE" : "ACTIVATE"}
+                          {user.isActive === 1 ? (
+                            <>
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                              DEACTIVATE
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"></path><path d="M12 6V12L16 14"></path></svg>
+                              ACTIVATE
+                            </>
+                          )}
                         </button>
                       </div>
                     </td>

@@ -277,7 +277,7 @@ export default function CertificatesPage() {
                           <span className="text-lg font-black text-alita-orange leading-none">{certifiedCount}</span>
                           <span className="text-xs font-bold text-alita-gray-300">/</span>
                           <span className="text-lg font-black text-alita-black/20 leading-none">{trainedMembers.length}</span>
-                          <span className="text-[9px] font-black text-alita-gray-400 uppercase tracking-tighter ml-1">CERTIFIED</span>
+                          <span className="px-2 py-0.5 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[8px] font-black text-alita-gray-400 uppercase tracking-widest ml-2 shadow-sm">CERTIFIED</span>
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -296,14 +296,20 @@ export default function CertificatesPage() {
                                  <span className="text-[8px] font-black text-alita-gray-400 tracking-widest uppercase mt-0.5">{m.position}</span>
                                </div>
                                {m.certificateFilePath || m.alitaExtEmail ? (
-                                 <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded text-[9px] font-black tracking-widest uppercase shadow-sm">
-                                   ALREADY CERTIFIED / ACTIVE
-                                 </span>
+                                 <button 
+                                   className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm flex items-center gap-1.5 hover:bg-green-100 transition-all active:scale-95"
+                                   onClick={() => handleOpenIssuance(assignment, m)}
+                                   title="Klik untuk ubah email / password"
+                                 >
+                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                   ACTIVE / EDIT ACCESS
+                                 </button>
                                ) : (
                                  <button 
-                                   className="px-3 py-1 text-[9px] font-black tracking-widest uppercase rounded shadow-sm active:scale-95 transition-all border bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800"
+                                   className="px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg shadow-sm active:scale-95 transition-all border bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800 flex items-center gap-2"
                                    onClick={() => handleOpenIssuance(assignment, m)}
                                  >
+                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.25-2.25"></path></svg>
                                    ISSUE ACCESS
                                  </button>
                                )}
@@ -398,7 +404,11 @@ export default function CertificatesPage() {
 
           <div className="p-4 border-2 border-dashed border-alita-gray-100 rounded-2xl bg-alita-gray-50/30 flex items-center justify-center text-center">
             <p className="text-[11px] font-bold text-alita-gray-500 tracking-tight">
-              📄 <span className="text-alita-black uppercase tracking-widest">Digital Certificate</span> akan digenerate otomatis menggunakan template resmi Alita.
+              {selectedMember?.certificateFilePath ? (
+                <>✅ <span className="text-green-600 uppercase tracking-widest">Certificate Exists</span>. Editing will only update email/password credentials.</>
+              ) : (
+                <>📄 <span className="text-alita-black uppercase tracking-widest">Digital Certificate</span> akan digenerate otomatis menggunakan template resmi Alita.</>
+              )}
             </p>
           </div>
 
@@ -407,7 +417,10 @@ export default function CertificatesPage() {
             className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" 
             disabled={submitting}
           >
-            {submitting ? "Processing..." : "Generate & Publish Credentials"}
+            {submitting 
+              ? "Processing..." 
+              : (selectedMember?.certificateFilePath ? "Update Credentials Only" : "Generate & Publish Credentials")
+            }
           </button>
         </form>
       </Modal>

@@ -223,7 +223,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
           <h2 className="text-[1.25rem] font-bold text-alita-orange leading-tight">Kelola Tim Lapangan</h2>
           <p className="text-[0.8rem] text-alita-gray-400 mt-1 flex items-center gap-3">
             <span>Penugasan: <strong className="text-alita-white font-semibold">{assignment.request?.sowPekerjaan || "N/A"}</strong></span>
-            {isStructuralReadOnly && <span className="px-2 py-0.5 bg-alita-orange text-alita-white rounded text-[10px] font-bold tracking-widest">READ ONLY</span>}
+            {isStructuralReadOnly && <span className="px-3 py-1 bg-alita-orange text-alita-white rounded-full text-[9px] font-black tracking-[0.15em] shadow-sm shadow-orange-100">READ ONLY</span>}
           </p>
         </div>
         <button onClick={onClose} className="text-3xl font-light text-alita-white hover:text-alita-orange transition-colors">&times;</button>
@@ -288,18 +288,18 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                     <div>
                       <div className="flex items-center flex-wrap gap-2 lg:gap-3 mb-2">
                         <h2 className="text-xl lg:text-2xl font-black text-alita-black tracking-tight leading-none">{activeTeam.leaderName || "Data Belum Lengkap"}</h2>
-                        <span className={`px-2 py-0.5 lg:px-2.5 lg:py-1 text-[8px] lg:text-[9px] font-black uppercase tracking-wider rounded border ${
-                            activeTeam.status === 'SOURCING' ? 'bg-alita-gray-100 border-alita-gray-200 text-alita-gray-600' :
-                            activeTeam.status === 'WAIT_SCHEDULE_TRAINING' ? 'bg-orange-50 border-orange-200 text-orange-600' :
+                        <span className={`inline-flex items-center px-3 py-1 text-[9px] lg:text-[10px] font-black uppercase tracking-wider rounded-full border whitespace-nowrap ${
+                            activeTeam.status === 'SOURCING' ? 'bg-alita-gray-50 border-alita-gray-200 text-alita-gray-400' :
+                            activeTeam.status === 'WAIT_SCHEDULE_TRAINING' ? 'bg-orange-50 border-orange-200 text-alita-orange' :
                             activeTeam.status === 'TRAINING_SCHEDULED' ? 'bg-blue-50 border-blue-200 text-blue-600' :
                             activeTeam.status === 'TRAINING_EVALUATED' ? 'bg-green-50 border-green-200 text-green-600' :
-                            'bg-alita-gray-100 border-alita-gray-200 text-alita-gray-600'
+                            'bg-alita-gray-50 border-alita-gray-200 text-alita-gray-400'
                           }`}>
                           {(activeTeam.status || "SOURCING").replace(/_/g, ' ')}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-alita-gray-500 font-medium">
-                        <span className="px-2 py-0.5 bg-alita-gray-100 rounded text-[10px] font-bold uppercase text-alita-gray-600">Leader</span>
+                        <span className="px-3 py-1 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[9px] font-black uppercase tracking-tight text-alita-gray-500">Leader</span>
                         {activeTeam.leaderPhone && <span>• {activeTeam.leaderPhone}</span>}
                         {activeTeam.location && <span>• {activeTeam.location}</span>}
                       </div>
@@ -470,11 +470,11 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                                )}
                              </td>
                              <td className="px-5 py-5">
-                                <span className="px-2 py-1 bg-alita-gray-100 rounded text-[9px] font-black uppercase text-alita-gray-600 border border-alita-gray-200">{m.position}</span>
+                                <span className="px-3 py-1 bg-alita-gray-50 rounded-full text-[9px] font-black uppercase text-alita-gray-501 border border-alita-gray-200 whitespace-nowrap">{m.position}</span>
                              </td>
                              <td className="px-5 py-5">
-                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                  m.isAttendedTraining === 1 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border whitespace-nowrap ${
+                                  m.isAttendedTraining === 1 ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-600'
                                 }`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${m.isAttendedTraining === 1 ? 'bg-green-600' : 'bg-red-600'}`}></span>
                                   {m.isAttendedTraining === 1 ? 'Trained' : 'Untrained'}

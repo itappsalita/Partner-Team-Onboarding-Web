@@ -35,31 +35,42 @@ export async function PUT(req: Request) {
 
     if (!memberData) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
-    // 2. Generate Certificate Number
-    const year = new Date().getFullYear();
-    const fullCertNo = `ALT/CERT/${year}/${(memberData.seqNumber || 0).toString().padStart(4, '0')}`;
-    const certNumber = memberData.seqNumber || 0; // Using seqNumber as numeric part
+    // 2. Handle Certificate Generation conditionally
+    let relativePath = memberData.certificateFilePath;
+    let certNumber = memberData.certificateNumber;
+    let fullCertNo = "";
 
-    // 3. Prepare PDF Data
-    const certInputData = {
-      NO_SERTIFIKAT: fullCertNo,
-      EMPLOYEE_NAME: memberData.name,
-      KTP: memberData.nik,
-      OCCUPATION: memberData.position,
-      Date_Training: memberData.team?.trainingProcess?.trainingDate 
-        ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID")
-        : "-",
-      Tanggal_Sertifikat: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
-    };
+    if (!memberData.certificateFilePath) {
+      // Generate Certificate Number
+      const year = new Date().getFullYear();
+      fullCertNo = `ALT/CERT/${year}/${(memberData.seqNumber || 0).toString().padStart(4, '0')}`;
+      certNumber = memberData.seqNumber || 0;
 
-    // 4. Generate & Save PDF
-    const pdfBuffer = await generateCertificatePdf(certInputData);
-    const fileName = `${memberData.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-    const relativePath = `/uploads/certificates/${fileName}`;
-    const absolutePath = path.join(process.cwd(), "public", "uploads", "certificates", fileName);
+      // Prepare PDF Data
+      const certInputData = {
+        NO_SERTIFIKAT: fullCertNo,
+        EMPLOYEE_NAME: memberData.name,
+        KTP: memberData.nik,
+        OCCUPATION: memberData.position,
+        Date_Training: memberData.team?.trainingProcess?.trainingDate 
+          ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID")
+          : "-",
+        Tanggal_Sertifikat: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+      };
 
-    await fs.ensureDir(path.dirname(absolutePath));
-    await fs.writeFile(absolutePath, pdfBuffer);
+      // Generate & Save PDF
+      const pdfBuffer = await generateCertificatePdf(certInputData);
+      const fileName = `${memberData.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+      relativePath = `/uploads/certificates/${fileName}`;
+      const absolutePath = path.join(process.cwd(), "public", "uploads", "certificates", fileName);
+
+      await fs.ensureDir(path.dirname(absolutePath));
+      await fs.writeFile(absolutePath, pdfBuffer);
+    } else {
+      // For existing certificates, keep the number for the response display
+      const year = new Date().getFullYear(); // Fallback to current year for display if needed
+      fullCertNo = `ALT/CERT/${year}/${(certNumber || 0).toString().padStart(4, '0')}`;
+    }
 
     // 5. Update Member Record
     await db.update(teamMembers)
@@ -121,7 +132,9 @@ export async function PUT(req: Request) {
     }
 
     return NextResponse.json({ 
-      message: "Certificate generated & Access issued successfully",
+      message: memberData.certificateFilePath 
+        ? "Credentials updated successfully" 
+        : "Certificate generated & Access issued successfully",
       filePath: relativePath,
       certNumber: fullCertNo
     });
