@@ -151,16 +151,31 @@ Selangkah lagi! Setelah aplikasi dapat diakses, sangat disarankan untuk memeriks
 
 ---
 
-## 🆘 Troubleshooting: Apa yang Harus Dilakukan Jika Error?
-Jika aplikasi tidak mau jalan setelah `docker compose up`, lihat rahasia di balik layarnya dengan mengetik:
-```bash
-# Untuk melihat keluhan aplikasi onboarding
-cd ~/Partner-Team-Onboarding && docker compose logs -f app
+## Bab 8: Pemeliharaan & Persistensi Data (Sangat Penting)
 
-# Untuk melihat keluhan Nginx Proxy Manager
-cd ~/npm-proxy && docker compose logs -f
+Aplikasi ini mengelola dokumen fisik yang krusial. Pastikan Anda memahami cara Docker menyimpan data Anda:
+
+1.  **./public/uploads**: Folder ini menyimpan seluruh foto **KTP, Selfie, dan Sertifikat PDF**. Folder ini wajib di-backup secara rutin ke penyimpanan eksternal.
+2.  **mysql_data**: Volume ini menyimpan seluruh catatan transaksi database Anda.
+3.  **Memori (RAM)**: Untuk fitur **Penerbitan Sertifikat PDF**, server disarankan memiliki minimal **1GB RAM** yang tersedia agar mesin Chromium (Puppeteer) dapat beroperasi dengan lancar.
+
+---
+
+## 🆘 Troubleshooting: Apa yang Harus Dilakukan Jika Error?
+Jika aplikasi tidak mau jalan setelah `docker compose up`, gunakan bantuan perintah berikut:
+
+```bash
+# 1. Cek apakah kontainer sudah jalan atau berhenti (Exited)
+docker compose ps
+
+# 2. Melihat keluhan aplikasi secara real-time (Log)
+docker compose logs -f app
+
+# 3. Merestart aplikasi tanpa menghapus data
+docker compose restart app
 ```
-Baca baris paling bawah. Biasanya ada petunjuk jelas jika password salah atau port sedang dipakai aplikasi lain.
+
+Baca baris paling bawah pada log. Biasanya ada petunjuk jelas jika password database salah atau port sedang dipakai aplikasi lain.
 
 ---
 © 2026 PT. Alita Praya Mitra. Developed for Success.
