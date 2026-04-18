@@ -18,8 +18,8 @@ Untuk memfasilitasi integrasi di masa depan, sistem kini memiliki portal dokumen
 
 ## 3. Deployment & Operational Guide
 Tim infrastruktur Alita telah dibekali dengan:
-- **`docs/deployment-tutorial.md`**: Panduan lengkap instalasi server, Docker, hingga setup SSL menggunakan Nginx Proxy Manager.
-- **`docs/backup-strategy.md`**: Strategi pencadangan data otomatis untuk menjamin keamanan aset digital.
+- **`docs/step-09-deployment.md`**: Panduan lengkap instalasi server, Docker, hingga setup SSL menggunakan Nginx Proxy Manager.
+- **`docs/step-10-backup.md`**: Strategi pencadangan data otomatis untuk menjamin keamanan aset digital.
 - **`Dockerfile` Premium**: Konfigurasi kontainer yang dioptimalkan dengan dukungan Puppeteer untuk rendering PDF sertifikat.
 
 ---
