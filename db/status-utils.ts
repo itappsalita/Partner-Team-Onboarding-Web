@@ -55,17 +55,20 @@ export async function recalculateTeamStatus(tx: any, teamId: string) {
   if (!team) return 'SOURCING';
 
   const quota = team.dataTeamPartner?.request?.membersPerTeam || 0;
-  const currentMemberCount = team.members?.length || 0;
+  const currentMembers = team.members || [];
+  const currentMemberCount = currentMembers.length;
+  const hasLeader = currentMembers.some((m: any) => m.position === 'Leader');
 
   // 2. Logika Downgrade:
-  // Jika anggota kurang dari kuota, status harus SOURCING
-  if (currentMemberCount < quota) {
-    if (team.status !== 'SOURCING') {
+  // Jika anggota kurang dari kuota ATAU tidak ada leader, status harus SOURCING
+  if (currentMemberCount < quota || !hasLeader) {
+    if (team.status !== 'SOURCING' && team.status !== 'CANCELED' && team.status !== 'COMPLETED') {
       await tx.update(teams)
         .set({ status: 'SOURCING' })
         .where(eq(teams.id, teamId));
       
-      console.log(`[STATUS] Team #${teamId} downgraded to SOURCING (Under Quota: ${currentMemberCount}/${quota})`);
+      const reason = currentMemberCount < quota ? `Under Quota: ${currentMemberCount}/${quota}` : "No Leader Found";
+      console.log(`[STATUS] Team #${teamId} downgraded to SOURCING (${reason})`);
       return 'SOURCING';
     }
   }

@@ -164,55 +164,6 @@ function DataTeamContent() {
     }
   };
 
-  const handleRequestTrainingClick = (dt: any) => {
-    const teams = dt.teams || [];
-    
-    // 1. Check if all assigned teams have been filled (leaderName exists)
-    const incompleteTeams = teams.filter((t: any) => !t.leaderName);
-    if (incompleteTeams.length > 0) {
-      alert(`Data belum lengkap. Terdapat ${incompleteTeams.length} tim yang informasinya belum diisi. Silakan lengkapi data seluruh tim (termasuk Team Leader) terlebih dahulu.`);
-      return;
-    }
-
-    // 2. Check if each team has minimum 3 members
-    const teamsWithInsufficientMembers = teams.filter((t: any) => (t.members?.length || 0) < 3);
-    if (teamsWithInsufficientMembers.length > 0) {
-      alert(`Personil belum mencukupi. Terdapat tim dengan jumlah anggota kurang dari 3 orang. Mohon lengkapi list anggota (minimal 3 orang per tim).`);
-      return;
-    }
-
-    // Open confirmation modal
-    setConfirmTarget(dt);
-  };
-
-  const executeRequestTraining = async () => {
-    if (!confirmTarget) return;
-    const dtId = confirmTarget.id;
-    setConfirmTarget(null);
-
-    try {
-      setRequesting(dtId);
-      const res = await fetch("/api/qa-training/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataTeamPartnerId: dtId })
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        alert("✅ Request verifikasi & training berhasil dikirim ke tim QA!");
-        fetchDataTeams();
-      } else {
-        alert("❌ " + (result.error || "Gagal mengajukan verifikasi & training"));
-      }
-    } catch (err) {
-      console.error("Request training error:", err);
-      alert("❌ Terjadi kesalahan sistem saat menghubungi server.");
-    } finally {
-      setRequesting(null);
-    }
-  };
 
   const handleEditDocs = (dt: any) => {
     setEditDocsTarget(dt);
@@ -382,7 +333,7 @@ function DataTeamContent() {
           onClick={() => setActiveTab('completed')}
         >
           Selesai
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'completed' ? 'bg-alita-black text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'completed' ? 'bg-green-600 text-alita-white' : 'bg-green-50 text-green-600'}`}>
             {completedCount}
           </span>
         </button>
@@ -725,36 +676,6 @@ function DataTeamContent() {
         </div>
       </Modal>
 
-      {/* Request Training Confirmation Modal */}
-      <Modal isOpen={confirmTarget !== null} onClose={() => setConfirmTarget(null)} title="Konfirmasi Request Verifikasi & Training">
-         <div className="space-y-6">
-            <div className="bg-orange-50 border border-orange-100 p-5 rounded-2xl">
-               <p className="text-xs text-orange-700 leading-relaxed font-medium mb-4">
-                  Anda akan mengajukan verifikasi data dan training untuk seluruh tim yang ada di bawah penugasan ini. 
-                  Sistem akan otomatis mendeteksi personil lama yang sudah tersertifikasi. 
-               </p>
-               <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase text-alita-gray-400">
-                     <span>Total Tim</span>
-                     <span className="text-alita-black">{confirmTarget?.teams?.length || 0} Tim</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] font-black uppercase text-alita-gray-400">
-                     <span>Total Personil</span>
-                     <span className="text-alita-black">{confirmTarget?.teams?.reduce((acc: number, t: any) => acc + (t.members?.length || 0), 0)} Orang</span>
-                  </div>
-               </div>
-            </div>
-            
-            <button 
-               className="w-full py-4 bg-alita-black text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:bg-alita-orange transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-               onClick={executeRequestTraining}
-               disabled={requesting !== null}
-            >
-               {requesting !== null ? "Mengirim Request..." : "Kirim Request Sekarang"}
-               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
-         </div>
-      </Modal>
     </div>
   );
 }

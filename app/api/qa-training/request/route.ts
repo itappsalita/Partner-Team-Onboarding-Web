@@ -19,82 +19,75 @@ export async function POST(req: Request) {
 
     // 1. Transaction to update statuses
     await db.transaction(async (tx) => {
-      let targetTeamIds: string[] = [];
-      let currentAssignmentId = dataTeamPartnerId;
+      if (!teamId) throw new Error("Team ID is required for this operation");
 
-      if (teamId) {
-        // Individual Team Request
-        const team = await tx.query.teams.findFirst({
-          where: eq(teams.id, teamId),
-        });
-        if (!team) throw new Error("Team not found");
-        targetTeamIds = [teamId];
-        currentAssignmentId = team.dataTeamPartnerId;
-        notificationDisplayId = team.displayId || team.id;
-      } else {
-        // Batch Assignment Request
-        const partnerTeams = await tx.query.teams.findMany({
-          where: eq(teams.dataTeamPartnerId, dataTeamPartnerId),
-        });
-        if (partnerTeams.length === 0) throw new Error("No teams found for this assignment");
-        targetTeamIds = partnerTeams.map(t => t.id);
-      }
+      // Fetch team data with RFP details
+      const team = await tx.query.teams.findFirst({
+        where: eq(teams.id, teamId),
+        with: {
+            dataTeamPartner: {
+                with: {
+                    request: true
+                }
+            }
+        }
+      }) as any;
 
-      const assignment = await tx.query.dataTeamPartners.findFirst({
-        where: eq(dataTeamPartners.id, currentAssignmentId),
+      if (!team) throw new Error("Team not found");
+      
+      const requiredQuota = team.dataTeamPartner?.request?.membersPerTeam || 0;
+      notificationDisplayId = team.displayId || team.id;
+      highlightId = teamId;
+
+      // Fetch current active members
+      const members = await tx.query.teamMembers.findMany({
+        where: and(eq(teamMembers.teamId, teamId), eq(teamMembers.isActive, 1))
       });
 
-      if (!assignment) throw new Error("Partner Assignment not found");
-      
-      if (!notificationDisplayId) {
-        notificationDisplayId = assignment.displayId || assignment.id;
+      // VALIDATION
+      const hasLeader = members.some(m => m.position === "Leader");
+      if (members.length !== requiredQuota) {
+        throw new Error(`Kriteria kuota tidak terpenuhi. Dibutuhkan tepat ${requiredQuota} anggota aktif (Ditemukan: ${members.length}).`);
+      }
+      if (!hasLeader) {
+        throw new Error("Tim wajib memiliki minimal satu anggota dengan posisi Leader.");
+      }
+      if (!team.tkpk1Number) {
+        throw new Error("Nomor Sertifikat TKPK1 wajib diisi sebelum pengajuan.");
       }
 
-      highlightId = targetTeamIds[0] || currentAssignmentId;
+      const allTrained = members.length > 0 && members.every(m => m.isAttendedTraining === 1);
+      const newStatus = allTrained ? 'COMPLETED' : 'WAIT_SCHEDULE_TRAINING';
 
-      // 1a. Process Each Team for Status Upgrade or Training Queue
-      for (const tId of targetTeamIds) {
-        // Fetch current active members for this team
-        const members = await tx.query.teamMembers.findMany({
-          where: and(eq(teamMembers.teamId, tId), eq(teamMembers.isActive, 1))
+      // Update Team Status
+      await tx.update(teams)
+        .set({ status: newStatus })
+        .where(eq(teams.id, teamId));
+
+      // 2. Manage Training Process Record
+      let trainingRecord = await tx.query.trainingProcesses.findFirst({
+        where: eq(trainingProcesses.teamId, teamId)
+      });
+
+      if (!trainingRecord) {
+        await tx.insert(trainingProcesses).values({
+          id: generateUuid(),
+          teamId: teamId,
+          result: allTrained ? 'LULUS' : 'PENDING',
+          evaluationNotes: allTrained ? "Verifikasi Personil Bersertifikat (Lulus Otomatis)" : null
         });
-
-        const allTrained = members.length > 0 && members.every(m => m.isAttendedTraining === 1);
-        const newStatus = allTrained ? 'COMPLETED' : 'WAIT_SCHEDULE_TRAINING';
-
-        // Update Team Status
-        await tx.update(teams)
-          .set({ status: newStatus })
-          .where(eq(teams.id, tId));
-
-        // 2. Manage Training Process Record
-        let trainingRecord = await tx.query.trainingProcesses.findFirst({
-          where: eq(trainingProcesses.teamId, tId)
-        });
-
-        if (!trainingRecord) {
-          await tx.insert(trainingProcesses).values({
-            id: generateUuid(),
-            teamId: tId,
-            result: allTrained ? 'LULUS' : 'PENDING',
-            evaluationNotes: allTrained ? "Verifikasi Personil Bersertifikat (Lulus Otomatis)" : null
-          });
-        } else if (allTrained) {
-          // If already exists but we are jumping to COMPLETED, ensure record reflects it
-          await tx.update(trainingProcesses)
-            .set({ 
-                result: 'LULUS',
-                evaluationNotes: "Verifikasi Personil Bersertifikat (Lulus Otomatis)"
-            })
-            .where(eq(trainingProcesses.teamId, tId));
-        }
+      } else if (allTrained) {
+        await tx.update(trainingProcesses)
+          .set({ 
+              result: 'LULUS',
+              evaluationNotes: "Verifikasi Personil Bersertifikat (Lulus Otomatis)"
+          })
+          .where(eq(trainingProcesses.teamId, teamId));
       }
 
-      // 1b. Update assignment status based on new team statuses
-      await recalculateAssignmentStatus(tx, currentAssignmentId);
-
-      // 1c. Update the parent request status based on ALL assignments
-      await recalculateRequestStatus(tx, assignment.requestId);
+      // 3. Update assignment & request status
+      await recalculateAssignmentStatus(tx, team.dataTeamPartnerId);
+      await recalculateRequestStatus(tx, team.dataTeamPartner?.requestId);
     });
 
     // Notify QA team

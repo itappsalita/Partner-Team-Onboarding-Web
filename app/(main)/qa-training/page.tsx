@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Modal from "../../../components/Modal";
+import TeamManagement from "../../../components/TeamManagement";
 
 const PROVINSI_INDONESIA = [
   "Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Kepulauan Riau",
@@ -43,6 +44,7 @@ function QaTrainingContent() {
   // Modals
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   
@@ -127,6 +129,11 @@ function QaTrainingContent() {
       evaluationNotes: item.trainingProcess?.evaluationNotes || ""
     });
     setIsEvaluationModalOpen(true);
+  };
+  
+  const handleOpenTeamDetail = (item: any) => {
+    setSelectedTask(item);
+    setIsTeamManagementOpen(true);
   };
 
   const submitSchedule = async (e: React.FormEvent) => {
@@ -257,7 +264,7 @@ function QaTrainingContent() {
           onClick={() => setFilter('done')}
         >
           Selesai (Evaluated)
-          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${filter === 'done' ? 'bg-alita-black text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${filter === 'done' ? 'bg-green-600 text-alita-white' : 'bg-green-50 text-green-600'}`}>
             {doneCount}
           </span>
         </button>
@@ -324,7 +331,7 @@ function QaTrainingContent() {
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Status</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Jadwal Training</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Evaluator (QA)</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 text-right">Action</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-alita-gray-50">
@@ -403,8 +410,8 @@ function QaTrainingContent() {
                     <td className="px-6 py-5 text-sm font-bold text-alita-black tracking-tight">
                       {item.trainingProcess?.qa?.name || "-"}
                     </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
                         {item.status !== 'TRAINING_EVALUATED' && item.status !== 'COMPLETED' && (
                           <>
                             {(!item.trainingProcess?.trainingDate || (mounted && new Date() <= new Date(item.trainingProcess.trainingDate))) && (
@@ -434,14 +441,22 @@ function QaTrainingContent() {
                           </>
                         )}
                         {(item.status === 'TRAINING_EVALUATED' || item.status === 'COMPLETED') && (
-                          <button 
-                            className="px-3 py-1.5 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-2" 
-                            onClick={() => handleOpenEvaluation(item)}
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                            <span>VIEW SUMMARY</span>
-                            {item.status === 'COMPLETED' && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-black">CERTIFIED</span>}
-                          </button>
+                          <div className="flex flex-col gap-2">
+                            <button 
+                              className="px-3 py-1.5 bg-green-50 border border-green-100 rounded-lg text-[10px] font-black text-green-600 hover:bg-green-600 hover:text-alita-white transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 group" 
+                              onClick={() => handleOpenEvaluation(item)}
+                            >
+                              <svg className="w-3.5 h-3.5 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                              VIEW SUMMARY
+                            </button>
+                            <button 
+                              className="px-3 py-1.5 bg-alita-gray-50 border border-alita-gray-200 rounded-lg text-[10px] font-black text-alita-orange hover:bg-alita-orange hover:text-alita-white transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 group" 
+                              onClick={() => handleOpenTeamDetail(item)}
+                            >
+                              <svg className="w-3 h-3 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                              VIEW TEAM DETAIL
+                            </button>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -529,9 +544,9 @@ function QaTrainingContent() {
                     TIM #{selectedTask.teamNumber} • Leader: {selectedTask.leaderName}
                   </div>
                   <div className="space-y-0.5">
-                    {selectedTask.members?.filter((m: any) => m.isAttendedTraining === 0).map((m: any) => (
-                      <div key={m.id} className="flex items-center gap-3 py-2 px-1 hover:bg-alita-gray-50 rounded-lg transition-colors group">
-                        <div className="relative flex items-center">
+                    {selectedTask.members?.filter((m: any) => m.isReturning === 0).map((m: any) => (
+                      <div key={m.id} className="flex items-center gap-3 py-3 px-2 hover:bg-alita-gray-50 rounded-xl transition-all group border-b border-alita-gray-50/50 last:border-0">
+                        <div className="relative flex items-center shrink-0">
                           <input 
                             type="checkbox" 
                             id={`member-${m.id}`}
@@ -541,15 +556,31 @@ function QaTrainingContent() {
                             disabled={selectedTask?.status === 'TRAINING_EVALUATED' || selectedTask?.status === 'COMPLETED'}
                           />
                         </div>
+
+                        {/* Selfie Thumbnail */}
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-alita-gray-200 bg-alita-gray-100 shrink-0 shadow-sm group-hover:border-alita-orange transition-colors">
+                          {m.selfieFilePath ? (
+                            <img 
+                              src={m.selfieFilePath} 
+                              alt="Selfie" 
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              onClick={() => window.open(m.selfieFilePath, '_blank')}
+                              title="Klik untuk memperbesar"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-alita-gray-400 font-bold uppercase tracking-tighter italic">N/A</div>
+                          )}
+                        </div>
+
                         <label htmlFor={`member-${m.id}`} className="flex flex-col cursor-pointer flex-1">
-                          <span className="text-xs font-bold text-alita-black tracking-tight">{m.name}</span>
+                          <span className="text-xs font-bold text-alita-black tracking-tight group-hover:text-alita-orange transition-colors">{m.name}</span>
                           <span className="text-[9px] font-black uppercase text-alita-gray-400 tracking-wider leading-none mt-0.5">{m.position}</span>
                         </label>
                       </div>
                     ))}
-                    {selectedTask.members?.filter((m: any) => m.isAttendedTraining === 1).length > 0 && (
+                    {selectedTask.members?.filter((m: any) => m.isReturning === 1).length > 0 && (
                       <div className="pt-2 mt-2 border-t border-alita-gray-100 italic text-[9px] text-alita-gray-400 font-medium">
-                        * {selectedTask.members?.filter((m: any) => m.isAttendedTraining === 1).length} personil lama (certified) disembunyikan dari daftar absensi.
+                        * {selectedTask.members?.filter((m: any) => m.isReturning === 1).length} personil lama (certified) disembunyikan dari daftar absensi.
                       </div>
                     )}
                   </div>
@@ -617,6 +648,19 @@ function QaTrainingContent() {
           )}
         </form>
       </Modal>
+
+      {/* Team Detail Modal (Read-Only) */}
+      {isTeamManagementOpen && selectedTask && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm" onClick={() => setIsTeamManagementOpen(false)}></div>
+          <div className="relative w-full max-w-7xl z-10 animate-in fade-in zoom-in duration-300">
+            <TeamManagement 
+               assignment={selectedTask.dataTeamPartner} 
+               onClose={() => setIsTeamManagementOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

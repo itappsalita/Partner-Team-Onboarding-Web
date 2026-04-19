@@ -187,13 +187,17 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
   };
 
   const executeRequestTraining = async () => {
-    if (!activeTeam || isStructuralReadOnly) return;
+    if (!activeTeam || assignment.status === 'CANCELED' || assignment.status === 'COMPLETED') return;
     
-    // Validasi Ekstra
-    const hasLeader = activeTeam.members?.some((m: any) => m.position === "Leader" && m.isActive === 1);
+    const activeMembers = activeTeam.members?.filter((m: any) => m.isActive === 1) || [];
+    const hasLeader = activeMembers.some((m: any) => m.position === "Leader");
+    const requiredQuota = assignment.request?.membersPerTeam || 0;
     
-    if (!hasLeader || !activeTeam.tkpk1Number || !activeTeam.members || activeTeam.members.length === 0) {
-      alert("Syarat Minimal belum terpenuhi: Pastikan Tim memiliki 1 Leader terdaftar di daftar anggota, Nomor TKPK1 terisi, dan minimal ada 1 anggota.");
+    if (!hasLeader || !activeTeam.tkpk1Number || activeMembers.length !== requiredQuota) {
+      alert(`Syarat Minimal belum terpenuhi: 
+1. Tim harus memiliki tepat ${requiredQuota} anggota aktif (Saat ini: ${activeMembers.length}).
+2. Wajib terdapat minimal 1 anggota dengan posisi "Leader".
+3. Nomor Sertifikat TKPK1 wajib terisi.`);
       return;
     }
 
@@ -220,11 +224,14 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     }
   };
 
+  const activeMembersLen = activeTeam?.members?.filter((m: any) => m.isActive === 1).length || 0;
+  const hasLeader = activeTeam?.members?.some((m: any) => m.position === "Leader" && m.isActive === 1);
+  const requiredQuota = assignment.request?.membersPerTeam || 0;
+
   const isTeamValidToRequest = activeTeam && 
-                               activeTeam.members?.some((m: any) => m.position === "Leader" && m.isActive === 1) && 
+                               hasLeader && 
                                activeTeam.tkpk1Number && 
-                               activeTeam.members && 
-                               activeTeam.members.filter((m: any) => m.isActive === 1).length > 0;
+                               activeMembersLen === requiredQuota;
 
   return (
     <div className="flex flex-col h-[90vh] lg:h-[85vh] bg-alita-white rounded-xl shadow-2xl border border-alita-gray-100 overflow-hidden">
@@ -325,11 +332,11 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                         ✏️ EDIT DATA TIM
                       </button>
                     )}
-                    {(isPartner || userRole === 'PMO_OPS' || userRole === 'SUPERADMIN') && (!activeTeam.status || activeTeam.status === 'SOURCING') && !isCanceled && (
+                    {(userRole === 'PROCUREMENT' || userRole === 'SUPERADMIN') && (!activeTeam.status || activeTeam.status === 'SOURCING') && !isCanceled && (
                       <button 
                         onClick={executeRequestTraining}
                         disabled={!isTeamValidToRequest || requesting === activeTeam.id}
-                        title={!isTeamValidToRequest ? "Nomor TKPK1, Nama Leader, dan minimal 1 Anggota wajib diisi sebelum mengajukan Training." : ""}
+                        title={!isTeamValidToRequest ? `Syarat: Tepat ${assignment.request?.membersPerTeam || 0} anggota aktif, minimal 1 Leader, dan Nomor TKPK1 terisi.` : ""}
                         className={`px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 ${
                           isTeamValidToRequest 
                             ? 'bg-alita-black text-alita-white hover:bg-alita-gray-800 cursor-pointer'
@@ -438,7 +445,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                          <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Akses Sistem</th>
                          <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">KTP</th>
                          {(!isCanceled && (isPartner || isSuperAdmin)) && (
-                           <th className="px-5 py-4 text-center text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Aksi</th>
+                           <th className="px-5 py-4 text-center text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Action</th>
                          )}
                        </tr>
                      </thead>

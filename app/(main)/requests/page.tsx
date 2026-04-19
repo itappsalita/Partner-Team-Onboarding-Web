@@ -181,7 +181,7 @@ export default function RequestsPage() {
           onClick={() => setActiveTab('completed')}
         >
           Selesai
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'completed' ? 'bg-alita-black text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'completed' ? 'bg-green-600 text-alita-white' : 'bg-green-50 text-green-600'}`}>
             {completedCount}
           </span>
         </button>

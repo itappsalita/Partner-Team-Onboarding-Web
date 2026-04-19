@@ -221,7 +221,7 @@ export default function UsersPage() {
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Email Address</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Role</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Actions</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-alita-gray-50">
@@ -367,15 +367,23 @@ export default function UsersPage() {
           </div>
 
           {formData.role === 'PARTNER' && (
-            <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-300">
-              <label className="text-xs font-bold uppercase tracking-wider text-alita-orange">Nama Perusahaan Partner</label>
+            <div className={`flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-300 ${modalMode === 'edit' ? 'opacity-70' : ''}`}>
+              <label className="text-xs font-bold uppercase tracking-wider text-alita-orange flex items-center gap-2">
+                Nama Perusahaan Partner
+                {modalMode === 'edit' && <span className="text-[9px] bg-alita-orange/10 px-1.5 py-0.5 rounded text-alita-orange">LOCKED</span>}
+              </label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-alita-white border-2 border-alita-orange/30 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:ring-4 focus:ring-alita-orange-glow transition-all shadow-sm" 
+                className={`w-full px-4 py-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-all shadow-sm ${
+                  modalMode === 'edit' 
+                    ? "bg-alita-gray-100 border-alita-gray-200 text-alita-gray-400 cursor-not-allowed" 
+                    : "bg-alita-white border-alita-orange/30 text-alita-black focus:border-alita-orange focus:ring-4 focus:ring-alita-orange-glow"
+                }`} 
                 placeholder="Contoh: PT. Alita Praya Mitra"
                 value={formData.companyName}
                 onChange={(e) => setFormData({...formData, companyName: e.target.value})}
                 required
+                disabled={modalMode === 'edit'}
               />
             </div>
           )}
@@ -392,13 +400,21 @@ export default function UsersPage() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">User Role</label>
+          <div className={`flex flex-col gap-1.5 ${modalMode === 'edit' ? 'opacity-70' : ''}`}>
+            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500 flex items-center gap-2">
+              User Role
+              {modalMode === 'edit' && <span className="text-[9px] bg-alita-gray-200 px-1.5 py-0.5 rounded text-alita-gray-500">LOCKED</span>}
+            </label>
             <select 
-              className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white transition-all shadow-sm"
+              className={`w-full px-4 py-3 border rounded-xl text-sm font-bold focus:outline-none transition-all shadow-sm ${
+                modalMode === 'edit'
+                  ? "bg-alita-gray-100 border-alita-gray-200 text-alita-gray-400 cursor-not-allowed appearance-none"
+                  : "bg-alita-gray-50 border-alita-gray-200 text-alita-black focus:border-alita-orange focus:bg-alita-white"
+              }`}
               value={formData.role}
               onChange={(e) => setFormData({...formData, role: e.target.value})}
               required
+              disabled={modalMode === 'edit'}
             >
               {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
             </select>

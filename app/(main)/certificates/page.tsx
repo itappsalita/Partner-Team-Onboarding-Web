@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
+import TeamManagement from "@/components/TeamManagement";
 
 const PROVINSI_INDONESIA = [
   "Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Kepulauan Riau",
@@ -44,6 +45,8 @@ function CertificatesContent() {
   // Modal states
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
   const [isIssuanceModalOpen, setIsIssuanceModalOpen] = useState(false);
+  const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -110,6 +113,11 @@ function CertificatesContent() {
       alitaEmailPassword: member.alitaEmailPassword || "",
     });
     setIsIssuanceModalOpen(true);
+  };
+  
+  const handleOpenTeamDetail = (item: any) => {
+    setSelectedTask(item);
+    setIsTeamManagementOpen(true);
   };
 
   const handleSubmitIssuance = async (e: React.FormEvent) => {
@@ -201,7 +209,7 @@ function CertificatesContent() {
           onClick={() => setActiveTab('published')}
         >
           Sudah Diterbitkan
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'published' ? 'bg-alita-black text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'published' ? 'bg-green-600 text-alita-white' : 'bg-green-50 text-green-600'}`}>
             {publishedCount}
           </span>
         </button>
@@ -301,7 +309,15 @@ function CertificatesContent() {
                       }`}
                     >
                       <td className={`px-6 py-5 text-sm font-bold text-alita-gray-400 ${highlightId === assignment.id ? 'animate-active-row' : ''}`}>
-                        {assignment.displayId}
+                        <div className="mb-2">#{assignment.displayId}</div>
+                        <button 
+                          className="px-2 py-1 bg-alita-gray-50 border border-alita-gray-200 rounded-lg text-alita-orange hover:bg-alita-orange hover:text-alita-white transition-all shadow-sm active:scale-95 group flex items-center gap-1.5" 
+                          onClick={() => handleOpenTeamDetail(assignment)}
+                          title="Lihat Detail Tim & Sertifikat Secara Menyeluruh"
+                        >
+                          <svg className="w-3 h-3 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                          <span className="text-[9px] font-black uppercase tracking-widest">TEAM</span>
+                        </button>
                       </td>
                       <td className="px-6 py-5">
                         <div className="text-sm font-bold text-alita-black tracking-tight mb-1">
@@ -467,6 +483,19 @@ function CertificatesContent() {
           </button>
         </form>
       </Modal>
+
+      {/* Team Detail Modal (Read-Only) */}
+      {isTeamManagementOpen && selectedTask && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm" onClick={() => setIsTeamManagementOpen(false)}></div>
+          <div className="relative w-full max-w-7xl z-10 animate-in fade-in zoom-in duration-300">
+            <TeamManagement 
+               assignment={selectedTask.dataTeamPartner} 
+               onClose={() => setIsTeamManagementOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
