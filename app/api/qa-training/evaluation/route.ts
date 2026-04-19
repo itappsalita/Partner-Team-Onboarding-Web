@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { dataTeamPartners, trainingProcesses, teamMembers, teams } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
+import { createNotification, notifyUsersByRole } from "@/lib/notifications";
 
 export async function PUT(req: Request) {
   try {
@@ -59,9 +60,37 @@ export async function PUT(req: Request) {
           .where(eq(dataTeamPartners.id, teamDetails.dataTeamPartnerId));
 
         // d. Collective Check for Request Status using central Utility
-        await recalculateRequestStatus(tx, teamDetails.dataTeamPartner.requestId);
       }
     });
+
+    // 2. Notify the Partner
+    const teamWithPartner = await db.query.teams.findFirst({
+      where: eq(teams.id, teamId),
+      with: {
+        dataTeamPartner: true
+      }
+    });
+
+    if (teamWithPartner?.dataTeamPartner?.partnerId) {
+      await createNotification({
+        userId: teamWithPartner.dataTeamPartner.partnerId,
+        title: `Hasil Evaluasi Training: ${result}`,
+        message: `Evaluasi training untuk unit ${teamWithPartner.displayId} telah selesai dengan hasil: ${result}.`,
+        type: "TRAINING",
+        link: `/data-team?assignmentId=${teamWithPartner.dataTeamPartnerId}&openModal=true`
+      });
+    }
+
+    // 3. Notify People & Culture (HR) if the result is PASS (LULUS) for certificate issuance
+    if (result === 'LULUS') {
+      await notifyUsersByRole({
+        role: "PEOPLE_CULTURE",
+        title: "Penertiban Sertifikat Baru",
+        message: `Unit ${teamWithPartner?.displayId || teamId} telah LULUS training. Silakan tinjau dan terbitkan sertifikat.`,
+        type: "CERTIFICATE",
+        link: `/certificates?highlight=${teamWithPartner?.id || teamId}`
+      });
+    }
 
     return NextResponse.json({ message: "Training evaluation saved successfully." });
   } catch (error: any) {

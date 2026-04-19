@@ -4,6 +4,7 @@ import { users, passwordResetTokens } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "../../../../lib/mail";
+import { generateUuid } from "../../../../lib/uuid";
 
 export async function POST(req: Request) {
   try {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.email, email));
     
     await db.insert(passwordResetTokens).values({
+      id: generateUuid(),
       email: email,
       token: hashedToken,
       expiresAt: expiresAt,

@@ -1,6 +1,4 @@
 import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
-import mammoth from "mammoth";
 import puppeteer from "puppeteer";
 import fs from "fs-extra";
 import path from "path";
@@ -60,22 +58,6 @@ export async function generateCertificatePdf(data: {
   const botLeft = corners.find(i => i.name.includes("image3"))?.name || corners[0]?.name || "";
   const botRight = corners.find(i => i.name.includes("image9"))?.name || corners[2]?.name || "";
 
-  // 2. Patch XML (Internal logic for Docxtemplater)
-  const docXmlPath = "word/document.xml";
-  const docXmlObj = zip.file(docXmlPath);
-  if (!docXmlObj) throw new Error("Document XML not found in template");
-  let docXml = docXmlObj.asText();
-  docXml = docXml.replace(/<w:instrText[^>]*>\s*MERGEFIELD\s+([A-Za-z0-9_]+)\s*<\/w:instrText>/g, `<w:t>{$1}</w:t>`);
-  docXml = docXml.replace(/<w:fldChar[^>]*\/>/g, "");
-  docXml = docXml.replace(/<w:fldSimple[^>]*>/g, "").replace(/<\/w:fldSimple>/g, "");
-  zip.file(docXmlPath, docXml);
-
-  const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-  doc.render(data);
-
-  // Still calling mammoth for potential text extraction if needed, though we use custom HTML
-  const buf = doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
-
   // Generate QR Code for footer
   const qrText = "Generate by Partner team Onboarding Apps";
   const qrDataUrl = await QRCode.toDataURL(qrText, {
@@ -86,8 +68,6 @@ export async function generateCertificatePdf(data: {
       light: "#ffffff"
     }
   });
-
-  const { value: html } = await mammoth.convertToHtml({ buffer: buf });
 
   const fullHtml = `
     <!DOCTYPE html>

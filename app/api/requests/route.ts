@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { generateUuid } from "../../../lib/uuid";
+import { notifyUsersByRole } from "../../../lib/notifications";
 
 export async function GET(req: Request) {
   try {
@@ -111,6 +112,15 @@ export async function POST(req: Request) {
           .where(eq(requestForPartners.id, requestId));
 
         return { id: requestId, displayId };
+    });
+
+    // Notify Procurement team
+    await notifyUsersByRole({
+      role: "PROCUREMENT",
+      title: "Request For Partner Baru",
+      message: `RFP Baru telah dibuat: ${sowPekerjaan} (${result.displayId})`,
+      type: "RFP",
+      link: `/requests`
     });
 
     return NextResponse.json({ message: "Request created successfully", id: result.id, displayId: result.displayId }, { status: 201 });

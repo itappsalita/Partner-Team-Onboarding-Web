@@ -85,7 +85,8 @@ export async function POST(req: Request) {
       .from(users)
       .where(eq(users.id, userId));
     
-    const displayId = `USR-${newUser.seqNumber.toString().padStart(5, '0')}`;
+    const seq = newUser?.seqNumber || 0;
+    const displayId = `USR-${seq.toString().padStart(5, '0')}`;
     
     // 3. Update with displayId
     await db.update(users)
@@ -111,9 +112,9 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { id, name, email, role, password, isActive, companyName } = body;
 
-    const userId = Number(id);
-    if (isNaN(userId)) {
-      return NextResponse.json({ error: "Invalid User ID" }, { status: 400 });
+    const userId = id;
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
     const updateData: any = {};

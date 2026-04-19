@@ -23,5 +23,5 @@ export function binToUuid(uuid: string): string {
  * This is much better for database indexing than v4.
  */
 export function generateUuid(): string {
-  return generator.generate();
+  return generator.generate().toString();
 }

@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "./SidebarContext";
+import NotificationBell from "./NotificationBell";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -49,6 +50,8 @@ export default function Header() {
       <div className="flex items-center gap-2 md:gap-3">
         {session?.user && (
           <>
+            <NotificationBell />
+            <div className="h-6 w-px bg-alita-gray-100 mx-1 hidden md:block"></div>
             <span className="hidden md:inline text-[0.8rem] font-semibold text-alita-gray-500">
               {session.user.name}
             </span>

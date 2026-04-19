@@ -143,6 +143,21 @@ export const passwordResetTokens = mysqlTable('password_reset_tokens', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+/**
+ * NOTIFICATIONS
+ * Stores in-app notifications for users.
+ */
+export const notifications = mysqlTable('notifications', {
+  id: uuidVarchar('id').primaryKey(),
+  userId: uuidVarchar('user_id').notNull().references(() => users.id),
+  title: varchar('title', { length: 255 }).notNull(),
+  message: text('message').notNull(),
+  type: varchar('type', { length: 50 }).notNull(), // 'RFP', 'TRAINING', 'CERTIFICATE', etc.
+  isRead: int('is_read').default(0).notNull(),
+  link: varchar('link', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 
 // --- RELATIONS ---
 
@@ -150,6 +165,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   requestsAsPmo: many(requestForPartners),
   partnerTeams: many(dataTeamPartners),
   trainingProcessesAsQa: many(trainingProcesses),
+  notifications: many(notifications),
 }));
 
 export const requestsRelations = relations(requestForPartners, ({ one, many }) => ({

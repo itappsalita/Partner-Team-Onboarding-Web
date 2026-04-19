@@ -8,6 +8,7 @@ import { join } from "path";
 import { eq } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
 import { generateUuid } from "@/lib/uuid";
+import { createNotification } from "@/lib/notifications";
 
 const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
@@ -229,6 +230,15 @@ export async function POST(req: Request) {
       }
 
       return { assignmentId, displayId: asgDisplayId };
+    });
+
+    // Notify the Partner
+    await createNotification({
+      userId: partnerIdStr,
+      title: "Penugasan RFP Baru",
+      message: `Anda telah ditugaskan untuk RFP: ${request.sowPekerjaan} (${result.displayId}) dengan kuota ${numTeams} tim.`,
+      type: "ASSIGNMENT",
+      link: `/data-team?highlight=${result.assignmentId}`
     });
 
     return NextResponse.json({ 

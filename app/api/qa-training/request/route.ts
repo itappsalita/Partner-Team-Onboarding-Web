@@ -4,6 +4,7 @@ import { dataTeamPartners, teams, trainingProcesses, teamMembers } from "@/db/sc
 import { eq, and, inArray } from "drizzle-orm";
 import { recalculateRequestStatus, recalculateAssignmentStatus } from "@/db/status-utils";
 import { generateUuid } from "@/lib/uuid";
+import { notifyUsersByRole } from "@/lib/notifications";
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
     if (!dataTeamPartnerId && !teamId) {
       return NextResponse.json({ error: "Missing target ID (dataTeamPartnerId or teamId)" }, { status: 400 });
     }
+
+    let notificationDisplayId = "";
+    let highlightId = "";
 
     // 1. Transaction to update statuses
     await db.transaction(async (tx) => {
@@ -26,6 +30,7 @@ export async function POST(req: Request) {
         if (!team) throw new Error("Team not found");
         targetTeamIds = [teamId];
         currentAssignmentId = team.dataTeamPartnerId;
+        notificationDisplayId = team.displayId || team.id;
       } else {
         // Batch Assignment Request
         const partnerTeams = await tx.query.teams.findMany({
@@ -40,6 +45,12 @@ export async function POST(req: Request) {
       });
 
       if (!assignment) throw new Error("Partner Assignment not found");
+      
+      if (!notificationDisplayId) {
+        notificationDisplayId = assignment.displayId || assignment.id;
+      }
+
+      highlightId = targetTeamIds[0] || currentAssignmentId;
 
       // 1a. Process Each Team for Status Upgrade or Training Queue
       for (const tId of targetTeamIds) {
@@ -84,6 +95,15 @@ export async function POST(req: Request) {
 
       // 1c. Update the parent request status based on ALL assignments
       await recalculateRequestStatus(tx, assignment.requestId);
+    });
+
+    // Notify QA team
+    await notifyUsersByRole({
+      role: "QA",
+      title: "Permintaan Verifikasi/Training Baru",
+      message: `Partner telah mengajukan verifikasi/training untuk unit di bawah ${notificationDisplayId}.`,
+      type: "TRAINING",
+      link: `/qa-training?highlight=${highlightId}`
     });
 
     return NextResponse.json({ message: "Training requested successfully." });

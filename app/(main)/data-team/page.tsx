@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import AssignPartnerModal from "../../../components/AssignPartnerModal";
 import TeamManagement from "../../../components/TeamManagement";
 import Modal from "../../../components/Modal";
@@ -17,8 +18,14 @@ const PROVINSI_INDONESIA = [
   "Papua", "Papua Barat", "Papua Tengah", "Papua Pegunungan", "Papua Selatan", "Papua Barat Daya"
 ];
 
-export default function DataTeamPage() {
+function DataTeamContent() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const assignmentIdParam = searchParams.get("assignmentId");
+  const openModalParam = searchParams.get("openModal");
+
   const userRole = (session?.user as any)?.role;
   const isProcurement = userRole === "PROCUREMENT" || userRole === "SUPERADMIN";
   const isPartner = userRole === "PARTNER";
@@ -88,6 +95,48 @@ export default function DataTeamPage() {
     setMounted(true);
     fetchDataTeams();
   }, []);
+
+  // AUTO-TAB SWITCHING & SCROLLING LOGIC
+  useEffect(() => {
+    if (highlightId && dataTeams.length > 0) {
+      const target = dataTeams.find(dt => dt.id === highlightId);
+      if (target) {
+        // 1. Identify and switch to correct tab
+        const status = getWorstCaseStatus(target);
+        if (status === 'COMPLETED') setActiveTab('completed');
+        else if (status === 'CANCELED') setActiveTab('canceled');
+        else setActiveTab('ongoing');
+
+        // 2. Small delay to ensure rendering, then scroll into view
+        setTimeout(() => {
+          const rowElement = document.querySelector('.row-highlight');
+          if (rowElement) {
+            rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 800);
+      }
+    }
+  }, [highlightId, dataTeams]);
+
+  // AUTO-OPEN MODAL LOGIC
+  useEffect(() => {
+    if (openModalParam === "true" && assignmentIdParam && dataTeams.length > 0) {
+      const target = dataTeams.find(dt => dt.id === assignmentIdParam);
+      
+      if (target) {
+        setSelectedAssignment(target);
+        
+        // Ensure the correct tab is active so the underlying data is consistent
+        const status = getWorstCaseStatus(target);
+        if (status === 'COMPLETED') setActiveTab('completed');
+        else if (status === 'CANCELED') setActiveTab('canceled');
+        else setActiveTab('ongoing');
+
+        // CLEANUP URL: Remove specific parameters to prevent re-opening on next render
+        router.replace('/data-team', { scroll: false });
+      }
+    }
+  }, [assignmentIdParam, openModalParam, dataTeams, router]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -227,15 +276,23 @@ export default function DataTeamPage() {
   };
 
   if (selectedAssignment) {
+    const handleCloseOverlay = () => {
+      setSelectedAssignment(null);
+      fetchDataTeams();
+    };
+
     return (
-      <div className="fixed inset-0 bg-alita-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-2 md:p-10 animate-in fade-in duration-300">
-         <div className="bg-alita-white w-full max-w-[1250px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+      <div 
+        className="fixed inset-0 bg-alita-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-2 md:p-10 animate-in fade-in duration-300 cursor-pointer"
+        onClick={handleCloseOverlay}
+      >
+         <div 
+            className="bg-alita-white w-full max-w-[1250px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <TeamManagement 
               assignment={selectedAssignment} 
-              onClose={() => {
-                setSelectedAssignment(null);
-                fetchDataTeams();
-              }} 
+              onClose={handleCloseOverlay} 
             />
          </div>
       </div>
@@ -429,7 +486,10 @@ export default function DataTeamPage() {
                 </td></tr>
               ) : (
                 currentItems.map((dt) => (
-                  <tr key={dt.id} className="hover:bg-orange-50/30 transition-all duration-200 table-row-hover">
+                  <tr 
+                    key={dt.id} 
+                    className={`hover:bg-orange-50/30 transition-all duration-200 table-row-hover ${dt.id === highlightId ? 'row-highlight' : ''}`}
+                  >
                     <td className="px-6 py-5 text-sm font-bold text-alita-gray-400">#{dt.displayId}</td>
                     <td className="px-6 py-5">
                       <div className="text-sm font-bold text-alita-black tracking-tight mb-1">{dt.request?.sowPekerjaan?.substring(0, 40)}...</div>
@@ -696,5 +756,13 @@ export default function DataTeamPage() {
          </div>
       </Modal>
     </div>
+  );
+}
+
+export default function DataTeamPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-alita-gray-400">Loading Page...</div>}>
+      <DataTeamContent />
+    </Suspense>
   );
 }

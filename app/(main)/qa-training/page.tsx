@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Modal from "../../../components/Modal";
 
 const PROVINSI_INDONESIA = [
@@ -16,7 +17,18 @@ const PROVINSI_INDONESIA = [
 ];
 
 export default function QaTrainingPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-black text-alita-orange animate-pulse">MEMUAT DASHBOARD QA...</div>}>
+      <QaTrainingContent />
+    </Suspense>
+  );
+}
+
+function QaTrainingContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const highlightId = searchParams.get("highlight");
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ongoing' | 'done'>('ongoing');
@@ -68,6 +80,30 @@ export default function QaTrainingPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchSow, searchPartner, filterProvinsi, filter]);
+
+  // AUTO-TAB SWITCHING & HIGHLIGHT LOGIC
+  useEffect(() => {
+    if (highlightId && data.length > 0 && mounted) {
+      const target = data.find(item => item.id === highlightId || item.dataTeamPartnerId === highlightId);
+      if (target) {
+        // 1. Switch to correct tab
+        const isDone = target.status === 'TRAINING_EVALUATED' || target.status === 'COMPLETED';
+        if (isDone) setFilter('done');
+        else setFilter('ongoing');
+
+        // 2. Scroll into view with a small delay for tab switching/rendering
+        setTimeout(() => {
+          const rowElement = document.querySelector('.row-highlight');
+          if (rowElement) {
+            rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Clean URL after focus
+            router.replace('/qa-training', { scroll: false });
+          }
+        }, 800);
+      }
+    }
+  }, [highlightId, data, mounted, router]);
 
   const handleOpenSchedule = (item: any) => {
     setSelectedTask(item);
@@ -312,8 +348,13 @@ export default function QaTrainingPage() {
                 </td></tr>
               ) : (
                 currentItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-orange-50/30 transition-all duration-200 table-row-hover">
-                    <td className="px-6 py-5">
+                  <tr 
+                    key={item.id} 
+                    className={`hover:bg-orange-50/30 transition-all duration-200 table-row-hover ${
+                      (highlightId === item.id || highlightId === item.dataTeamPartnerId) ? 'row-highlight' : ''
+                    }`}
+                  >
+                    <td className={`px-6 py-5 ${(highlightId === item.id || highlightId === item.dataTeamPartnerId) ? 'animate-active-row' : ''}`}>
                       <div className="text-sm font-bold text-alita-gray-400 tracking-tight">
                         #{item.displayId}
                       </div>

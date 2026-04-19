@@ -112,6 +112,17 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     setMemberPage(1);
   }, [activeTeam?.id]);
 
+  // Handle Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
   const openAddTeamModal = () => {
     setIsEditMode(false);
     setTeamFormInitial({

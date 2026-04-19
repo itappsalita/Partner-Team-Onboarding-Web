@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { teamMembers, teams, dataTeamPartners } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
+import { createNotification } from "@/lib/notifications";
 import path from "path";
 import fs from "fs-extra";
 import { generateCertificatePdf } from "./certUtils";
@@ -157,6 +158,17 @@ export async function PUT(req: Request) {
         // --- 6.b Update Global Request Status using utility ---
         await recalculateRequestStatus(tx, requestId);
       });
+    }
+
+    // 7. Notify the Partner
+    if (memberData.team?.dataTeamPartner?.partnerId) {
+        await createNotification({
+            userId: memberData.team.dataTeamPartner.partnerId,
+            title: "Sertifikat Diterbitkan",
+            message: `Sertifikat dan akun akses untuk ${memberData.name} telah diterbitkan.`,
+            type: "CERTIFICATE",
+            link: `/data-team?assignmentId=${memberData.team.dataTeamPartnerId}&openModal=true`
+        });
     }
 
     return NextResponse.json({ 

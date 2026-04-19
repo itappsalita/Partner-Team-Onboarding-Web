@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
 
 const PROVINSI_INDONESIA = [
@@ -16,7 +17,18 @@ const PROVINSI_INDONESIA = [
 ];
 
 export default function CertificatesPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-black text-alita-orange animate-pulse">MEMUAT DATA SERTIFIKAT...</div>}>
+      <CertificatesContent />
+    </Suspense>
+  );
+}
+
+function CertificatesContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const highlightId = searchParams.get("highlight");
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -65,6 +77,30 @@ export default function CertificatesPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchSow, searchPartner, filterProvinsi, activeTab]);
+
+  // AUTO-TAB SWITCHING & HIGHLIGHT LOGIC
+  useEffect(() => {
+    if (highlightId && data.length > 0 && mounted) {
+      const target = data.find(item => item.id === highlightId);
+      if (target) {
+        // 1. Switch to correct tab
+        const isCompleted = target.status === 'COMPLETED';
+        if (isCompleted) setActiveTab('published');
+        else setActiveTab('pending');
+
+        // 2. Scroll into view with a small delay for tab switching/rendering
+        setTimeout(() => {
+          const rowElement = document.querySelector('.row-highlight');
+          if (rowElement) {
+            rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Clean URL after focus
+            router.replace('/certificates', { scroll: false });
+          }
+        }, 800);
+      }
+    }
+  }, [highlightId, data, mounted, router]);
 
   const handleOpenIssuance = (assignment: any, member: any) => {
     setSelectedAssignment(assignment);
@@ -258,8 +294,15 @@ export default function CertificatesPage() {
                   const certifiedCount = trainedMembers.filter((m: any) => m.certificateFilePath && m.alitaExtEmail).length;
                   
                   return (
-                    <tr key={assignment.id} className="hover:bg-orange-50/30 transition-all duration-200 table-row-hover">
-                      <td className="px-6 py-5 text-sm font-bold text-alita-gray-400">{assignment.displayId}</td>
+                    <tr 
+                      key={assignment.id} 
+                      className={`hover:bg-orange-50/30 transition-all duration-200 table-row-hover ${
+                        highlightId === assignment.id ? 'row-highlight' : ''
+                      }`}
+                    >
+                      <td className={`px-6 py-5 text-sm font-bold text-alita-gray-400 ${highlightId === assignment.id ? 'animate-active-row' : ''}`}>
+                        {assignment.displayId}
+                      </td>
                       <td className="px-6 py-5">
                         <div className="text-sm font-bold text-alita-black tracking-tight mb-1">
                           {assignment.dataTeamPartner?.companyName || "No Company"}

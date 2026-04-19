@@ -23,3 +23,13 @@ Ini adalah salah satu fitur paling kompleks yang telah diimplementasikan:
 ## 5. Dashboard Real-Time & KPI
 - **KPI Metrics**: Kalkulasi personil tersertifikasi, pipeline tim dalam training, dan status pemenuhan RFP.
 - **Akurasi**: Statistik secara proaktif hanya menghitung personil dengan status `isActive = 1`.
+
+## 6. Sistem Notifikasi & Navigasi Terintegrasi
+Modul ini menghubungkan seluruh DASHBOARD melalui alur kerja yang ACTIONABLE:
+- **Pusat Notifikasi Premium**: Antarmuka real-time dengan polling jaringan 30 detik dan ticker waktu UI 10 detik. Dilengkapi sistem pembersihan zona waktu otomatis untuk menjamin akurasi label waktu di lingkungan desktop lokal.
+- **Contextual Intelligence**: Identifikasi cepat tipe notifikasi (Sertifikat, Training, Penugasan) menggunakan ikon SVG yang unik dan indikator visual untuk pesan yang belum dibaca.
+- **Smart Deep-Linking & Alur Dashboard**: 
+    - Implementasi logika `Suspense` untuk penanganan parameter URL secara dinamis.
+    - Fitur **Auto-Tab Switching**: Berpindah otomatis antara tab *Ongoing/Completed* berdasarkan status record yang dituju.
+    - Fitur **Scroll-to-View & Amber Flash**: Navigasi otomatis ke baris data yang relevan dengan animasi visual yang mencolok.
+- **UX & Aksesibilitas**: Implementasi penutupan modal universal melalui tombol **Escape** dan deteksi **Click-outside** pada seluruh overlay manajemen tim.

@@ -14,6 +14,10 @@ Sistem Manajemen Onboarding Partner untuk **PT. Alita Praya Mitra**. Aplikasi in
   - **Internal Alita**: Prioritas tampilan permintaan dan mitra aktif.
   - **Partner**: Prioritas tampilan personil tersertifikasi.
   - **Akurasi Data**: Seluruh statistik secara otomatis memfilter hanya anggota tim yang berstatus aktif.
+- **Sistem Notifikasi & Navigasi Cerdas**: 
+  - **Notification Center Premium**: Antarmuka notifikasi real-time dengan ikon kontekstual dan indikator pesan belum dibaca.
+  - **Integrated Deep-Linking**: Alur navigasi otomatis dari notifikasi langsung ke baris data spesifik di dashboard, lengkap dengan fitur *auto-tab switching* dan *scroll-to-view*.
+  - **Visual Feedback (Amber Flash)**: Animasi baris data untuk memudahkan identifikasi record yang relevan saat diakses melalui sistem notifikasi.
 
 ## 🛠️ Tumpukan Teknologi
 

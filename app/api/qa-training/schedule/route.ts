@@ -4,6 +4,7 @@ import { dataTeamPartners, trainingProcesses, users, requestForPartners, teams }
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { eq, or } from "drizzle-orm";
+import { createNotification } from "../../../../lib/notifications";
 
 export async function GET(req: Request) {
   try {
@@ -82,10 +83,27 @@ export async function PUT(req: Request) {
       })
       .where(eq(trainingProcesses.teamId, teamId));
 
-    // 2. Update status to TRAINING_SCHEDULED
     await db.update(teams)
       .set({ status: 'TRAINING_SCHEDULED' })
       .where(eq(teams.id, teamId));
+
+    // 3. Notify the Partner
+    const teamWithPartner = await db.query.teams.findFirst({
+      where: eq(teams.id, teamId),
+      with: {
+        dataTeamPartner: true
+      }
+    });
+
+    if (teamWithPartner?.dataTeamPartner?.partnerId) {
+      await createNotification({
+        userId: teamWithPartner.dataTeamPartner.partnerId,
+        title: "Jadwal Training Ditetapkan",
+        message: `Jadwal training untuk unit ${teamWithPartner.displayId} telah ditetapkan pada ${new Date(trainingDate).toLocaleDateString('id-ID')}.`,
+        type: "TRAINING",
+        link: `/data-team?highlight=${teamWithPartner.dataTeamPartnerId}`
+      });
+    }
 
     return NextResponse.json({ message: "Training schedule updated successfully." });
   } catch (error: any) {
