@@ -42,31 +42,51 @@ cd Partner-Team-Onboarding
 npm install
 ```
 
-### 3. Konfigurasi
-Lengkapi file `.env` di direktori root:
+### 3. Konfigurasi Lokal
+Lengkapi file `.env.local` di direktori root untuk pengembangan lokal:
 ```env
 DATABASE_URL='mysql://user:password@localhost:3306/db_onboarding'
 NEXTAUTH_URL='http://localhost:3000'
 NEXTAUTH_SECRET='kunci-keamanan-anda'
 ```
 
-### 🐳 Deployment Produksi (Docker)
+### 🐳 Deployment & CI/CD (Otomatis)
 
-Aplikasi ini telah dioptimalkan untuk berjalan di dalam kontainer Docker dengan dukungan penuh untuk rendering sertifikat PDF.
+Aplikasi ini mendukung deployment otomatis menggunakan **GitHub Actions** ke dua lingkungan (VM) terpisah:
+
+| Environment | Domain | Branch | Port | Docker Compose |
+| :--- | :--- | :--- | :--- | :--- |
+| **Development** | `dev.partner-onboarding.alita.id` | `develop` | 3001 | `docker-compose.dev.yml` |
+| **Production** | `partner-onboarding.alita.id` | `main` | 3000 | `docker-compose.prod.yml` |
+
+#### Alur Kerja Deployment
+1. **Push ke `develop`**: Otomatis update di server Dev.
+2. **Push ke `main`**: Otomatis update di server Prod.
+
+#### Konfigurasi GitHub Secrets
+Pastikan Anda telah menambahkan *Secrets* berikut di repositori GitHub:
+- `DEV_SSH_HOST`, `DEV_SSH_USER`, `DEV_SSH_KEY`
+- `PROD_SSH_HOST`, `PROD_SSH_USER`, `PROD_SSH_KEY`
 
 ### 1. Persiapan Environment
-Pastikan variabel lingkungan pada `docker-compose.yml` telah sesuai, terutama `NEXTAUTH_SECRET` dan `DATABASE_URL`.
+Pilih file `.env` yang sesuai sebelum menjalankan Docker secara manual (jika diperlukan):
+- Gunakan `.env.development` untuk Dev.
+- Gunakan `.env.production` untuk Prod.
 
-### 2. Build & Run
-Gunakan perintah berikut untuk membangun dan menjalankan seluruh layanan (Aplikasi & Database):
+### 2. Build & Run Manual
+Jika ingin menjalankan secara manual di server:
 ```bash
-docker compose up -d --build
+# Untuk Dev
+docker compose -f docker-compose.dev.yml up -d --build
+
+# Untuk Prod
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### 3. Manajemen Data (Persistensi)
 Sangat penting untuk memastikan data unggahan personil tidak hilang. Konfigurasi volume berikut sudah terpasang secara default:
 - **Media**: `./public/uploads` di-mount ke kontainer untuk menyimpan KTP, Selfie, dan Sertifikat.
-- **Database**: `mysql_data` dikelola oleh Docker untuk menyimpan data relasional secara persisten.
+- **Database**: Volume `mysql_data_dev` (Dev) atau `mysql_data_prod` (Prod) dikelola oleh Docker untuk menyimpan data relasional secara persisten.
 
 ### 4. Optimalisasi Performa
 `Dockerfile` menggunakan metode **Multi-stage Build** dan **Standalone Output** dari Next.js untuk menghasilkan *image* yang ringan dan efisien untuk produksi.
