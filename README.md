@@ -41,8 +41,8 @@ Pastikan Anda telah menginstal:
 
 ### 2. Kloning & Instalasi
 ```bash
-git clone https://github.com/itappsalita/Partner-Team-Onboarding.git
-cd Partner-Team-Onboarding
+git clone https://github.com/itappsalita/Partner-Team-Onboarding-Web.git
+cd Partner-Team-Onboarding-Web
 npm install
 ```
 

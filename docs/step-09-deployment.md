@@ -59,8 +59,8 @@ curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
 Masuk ke direktori home server dan kloning repositori:
 ```bash
 cd ~
-git clone https://github.com/itappsalita/Partner-Team-Onboarding.git
-cd Partner-Team-Onboarding
+git clone https://github.com/itappsalita/Partner-Team-Onboarding-Web.git
+cd Partner-Team-Onboarding-Web
 ```
 
 ---
@@ -115,8 +115,8 @@ Agar alur CI/CD di GitHub mengenali "kunci" dan "alamat" server Anda.
 
 Buat file variabel lingkungan di masing-masing server secara manual untuk pertama kali agar aplikasi tahu URL dan database yang digunakan:
 
-*   **Di VM Dev**: `nano ~/Partner-Team-Onboarding/.env.development`
-*   **Di VM Prod**: `nano ~/Partner-Team-Onboarding/.env.production`
+*   **Di VM Dev**: `nano ~/Partner-Team-Onboarding-Web/.env.development`
+*   **Di VM Prod**: `nano ~/Partner-Team-Onboarding-Web/.env.production`
 
 *Isi file disesuaikan dengan domain dan password database masing-masing.*
 

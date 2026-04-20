@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.DEV_SSH_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           script: |
-            cd ~/Partner-Team-Onboarding
+            cd ~/Partner-Team-Onboarding-Web
             git pull origin develop
             docker compose -f docker-compose.dev.yml up -d --build
             docker image prune -f
@@ -63,7 +63,7 @@ jobs:
           username: ${{ secrets.PROD_SSH_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            cd ~/Partner-Team-Onboarding
+            cd ~/Partner-Team-Onboarding-Web
             git pull origin main
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f

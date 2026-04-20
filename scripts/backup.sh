@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-PROJECT_ROOT="/Users/etikahsiregar/Development/Partner-Team-Onboarding"
+PROJECT_ROOT="/Users/etikahsiregar/Development/Partner-Team-Onboarding-Web"
 BACKUP_DIR="$PROJECT_ROOT/backups"
 UPLOADS_DIR="$PROJECT_ROOT/public/uploads"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
