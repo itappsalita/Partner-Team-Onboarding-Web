@@ -56,6 +56,13 @@ npm run dev
 ```
 Aplikasi akan dapat diakses di [http://localhost:3000](http://localhost:3000).
 
+### 5. Melihat Isi Database (Visual CLI)
+Jika Anda ingin melihat isi tabel secara visual (seperti phpMyAdmin), jalankan:
+```bash
+npm run db:studio
+```
+Lalu buka browser Anda ke alamat **https://local.drizzle.studio**.
+
 ---
 
 ## 🛠️ Troubleshooting (Kendala Sering Terjadi)
