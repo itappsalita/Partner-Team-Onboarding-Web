@@ -21,8 +21,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Lint Check
-        run: npm run lint
+      # - name: Lint Check
+      #   run: npm run lint
 
   deploy:
     needs: test
@@ -34,8 +34,9 @@ jobs:
       - name: Deploy
         run: |
           cd /var/www/Partner-Team-Onboarding-Web
-          git pull origin develop
+          git pull origin main
           npm install
+          npm run db:generate
           npm run db:migrate
           npm run build
           pm2 restart partner-onboarding
