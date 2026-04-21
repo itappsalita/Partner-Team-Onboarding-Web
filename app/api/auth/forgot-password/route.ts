@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../db";
 import { users, passwordResetTokens } from "../../../../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, lt, or } from "drizzle-orm";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "../../../../lib/mail";
 import { generateUuid } from "../../../../lib/uuid";
@@ -28,8 +28,14 @@ export async function POST(req: Request) {
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
 
-    // 3. Save to database (Delete existing tokens for this email first to prevent clutter)
-    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.email, email));
+    // 3. Save to database
+    // Delete existing tokens for this email AND clean up all expired tokens globally
+    await db.delete(passwordResetTokens).where(
+      or(
+        eq(passwordResetTokens.email, email),
+        lt(passwordResetTokens.expiresAt, new Date())
+      )
+    );
     
     await db.insert(passwordResetTokens).values({
       id: generateUuid(),
