@@ -3,7 +3,7 @@ name: Deploy Development
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
   test:
@@ -26,7 +26,7 @@ jobs:
 
   deploy:
     needs: test
-    runs-on: self-hosted
+    runs-on: [self-hosted, production]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       - name: Deploy
         run: |
           cd /var/www/Partner-Team-Onboarding-Web
-          git pull origin main
+          git pull origin dev
           npm install
           npx drizzle-kit generate
           npx drizzle-kit migrate
