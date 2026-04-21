@@ -7,14 +7,14 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted, production]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Deploy
         run: |
-          cd /var/www/Partner-Team-Onboarding-Web
+          cd /root/Partner-Team-Onboarding-Web
           git pull origin main
           docker compose -f docker-compose.prod.yml down
           docker compose -f docker-compose.prod.yml up -d --build
