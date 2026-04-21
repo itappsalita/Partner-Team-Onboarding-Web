@@ -49,3 +49,6 @@ public/uploads/**/*
 
 # logs
 *.log
+
+# Drizzle migrations (regenerate locally)
+/drizzle/
