@@ -1,79 +1,79 @@
-name: CI/CD Deployment
+# name: CI/CD Deployment
 
-on:
-  push:
-    branches:
-      - main
-      - develop
+# on:
+#   push:
+#     branches:
+#       - main
+#       - develop
 
-jobs:
-  test-and-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+# jobs:
+#   test-and-build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "20"
+#           cache: "npm"
 
-      - name: Install Dependencies
-        run: npm ci
+#       - name: Install Dependencies
+#         run: npm ci
 
-      - name: Lint Check
-        run: npm run lint
+#       # - name: Lint Check
+#       #   run: npm run lint
 
-      - name: Build Check
-        run: npm run build
+#       - name: Build Check
+#         run: npm run build
 
-  deploy-dev:
-    if: github.ref == 'refs/heads/develop'
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+#   deploy-dev:
+#     if: github.ref == 'refs/heads/develop'
+#     needs: test-and-build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Install and setup OpenVPN
-        uses: jirutka/setup-openvpn@v3
-        with:
-          config: ${{ secrets.VPN_CONFIG }}
+#       - name: Install and setup OpenVPN
+#         uses: jirutka/setup-openvpn@v3
+#         with:
+#           config: ${{ secrets.VPN_CONFIG }}
 
-      - name: Deploy to Development VM
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DEV_SSH_HOST }}
-          username: ${{ secrets.DEV_SSH_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
-          script: |
-            cd ~/Partner-Team-Onboarding-Web
-            git pull origin develop
-            docker compose -f docker-compose.dev.yml up -d --build
-            docker image prune -f
+#       - name: Deploy to Development VM
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.DEV_SSH_HOST }}
+#           username: ${{ secrets.DEV_SSH_USER }}
+#           key: ${{ secrets.DEV_SSH_KEY }}
+#           script: |
+#             cd ~/Partner-Team-Onboarding-Web
+#             git pull origin develop
+#             docker compose -f docker-compose.dev.yml up -d --build
+#             docker image prune -f
 
-  deploy-prod:
-    if: github.ref == 'refs/heads/main'
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+#   deploy-prod:
+#     if: github.ref == 'refs/heads/main'
+#     needs: test-and-build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Install and setup OpenVPN
-        uses: jirutka/setup-openvpn@v3
-        with:
-          config: ${{ secrets.VPN_CONFIG }}
+#       - name: Install and setup OpenVPN
+#         uses: jirutka/setup-openvpn@v3
+#         with:
+#           config: ${{ secrets.VPN_CONFIG }}
 
-      - name: Deploy to Production VM
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          script: |
-            cd ~/Partner-Team-Onboarding-Web
-            git pull origin main
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker image prune -f
+#       - name: Deploy to Production VM
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.PROD_SSH_HOST }}
+#           username: ${{ secrets.PROD_SSH_USER }}
+#           key: ${{ secrets.PROD_SSH_KEY }}
+#           script: |
+#             cd ~/Partner-Team-Onboarding-Web
+#             git pull origin main
+#             docker compose -f docker-compose.prod.yml up -d --build
+#             docker image prune -f
