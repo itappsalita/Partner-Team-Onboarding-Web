@@ -82,14 +82,45 @@ ssh-keygen -t ed25519 -C "github-actions-deploy"
 - Kunci Publik: `~/.ssh/id_ed25519.pub`
 
 ### 2. Mendaftarkan Kunci Publik ke Server
-Lakukan ini pada **kedua VM** (Dev & Prod):
-1. Salin isi kunci publik dari laptop Anda: `cat ~/.ssh/id_ed25519.pub`.
-2. Masuk ke server via SSH (Bab 1).
-3. Tempelkan kunci tersebut ke dalam file authorized keys server:
+Tujuannya adalah menempelkan "tanda pengenal" laptop Anda ke dalam "buku daftar tamu" di server yang bernama `authorized_keys`.
+
+Lakukan langkah ini pada **kedua VM** (Dev & Prod):
+
+**Langkah A: Ambil Kunci dari Laptop Anda**
+1. Buka terminal di **laptop Mac** Anda.
+2. Tampilkan isi kunci publik Anda dengan perintah:
    ```bash
-   mkdir -p ~/.ssh && nano ~/.ssh/authorized_keys
+   cat ~/.ssh/id_ed25519.pub
    ```
-4. Simpan (`Ctrl+O`, `Enter`) dan Keluar (`Ctrl+X`).
+3. Akan muncul teks panjang yang diawali dengan `ssh-ed25519 AAAAC3Nza...`. **Salin (Copy)** seluruh teks tersebut.
+
+**Langkah B: Masukkan Kunci ke dalam Server**
+1. Masuk ke server Anda via SSH (seperti di Bab 1).
+2. Buat folder SSH di server (jika belum ada):
+   ```bash
+   mkdir -p ~/.ssh
+   chmod 700 ~/.ssh
+   ```
+3. Buka (atau buat) file pendataan kunci dengan editor teks `nano`:
+   ```bash
+   nano ~/.ssh/authorized_keys
+   ```
+4. **Tempelkan (Paste)** teks kunci yang tadi Anda salin ke dalam file tersebut.
+   - Pastikan kunci berada dalam **satu baris** yang utuh.
+   - Jika sudah ada kunci lain di sana, tempelkan di baris paling bawah.
+5. Simpan dan Keluar:
+   - Tekan `Ctrl + O` lalu `Enter` (untuk menyimpan).
+   - Tekan `Ctrl + X` (untuk keluar dari editor).
+6. Atur izin akses agar aman:
+   ```bash
+   chmod 600 ~/.ssh/authorized_keys
+   ```
+
+**Langkah C: Verifikasi (Uji Coba)**
+Coba keluar dari server (`exit`) lalu masuk kembali. Jika berhasil, server tidak akan meminta password lagi:
+```bash
+ssh [username]@[IP_SERVER]
+```
 
 ---
 
@@ -202,10 +233,18 @@ Jika Anda menggunakan Nginx Proxy Manager:
 ## Bab 7: Pemeliharaan Data & Troubleshooting
 
 ### 1. Inisialisasi Database
-Saat pertama kali berjalan, sinkronkan struktur database:
+Saat pertama kali berjalan, kita harus menyinkronkan struktur database dan membuat akun awal. Karena kita menggunakan Docker Production, kita akan menggunakan service khusus bernama `migration`:
+
+**Sinkronkan Struktur Tabel:**
 ```bash
-npx drizzle-kit push
+docker compose -f docker-compose.prod.yml run --rm migration npm run db:push
 ```
+
+**Buat Akun Superadmin Awal:**
+```bash
+docker compose -f docker-compose.prod.yml run --rm migration npm run seed:user
+```
+*(Kontainer `migration` akan otomatis dihapus setelah perintah selesai dijalankan).*
 
 ### 2. Backup Rutin
 Wajib backup folder `./public/uploads` dan volume `mysql_data_dev/prod` karena berisi file fisik (KTP, Selfie, Sertifikat).
