@@ -14,7 +14,7 @@ jobs:
 
       - name: Deploy
         run: |
-          cd /root/Partner-Team-Onboarding-Web
+          cd /var/www/Partner-Team-Onboarding-Web
           git pull origin main
           docker compose -f docker-compose.prod.yml down
           docker compose -f docker-compose.prod.yml up -d --build
