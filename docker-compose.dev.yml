@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -8,7 +8,7 @@ services:
     container_name: onboarding-app-dev
     restart: always
     ports:
-      - "3001:3000"
+      - "3000:3000"
     env_file:
       - .env.development
     depends_on:
@@ -16,7 +16,6 @@ services:
         condition: service_healthy
     volumes:
       - ./public/uploads:/app/public/uploads
-
   db:
     image: mysql:8.0
     container_name: onboarding-db-dev
@@ -24,15 +23,44 @@ services:
     environment:
       - MYSQL_DATABASE=partner_onboarding_db
       - MYSQL_ROOT_PASSWORD=password_dev
+      - MYSQL_ROOT_HOST=%
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - mysql_data_dev:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword_dev"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-ppassword_dev",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Management service for DB migrations and seeding
+  # This container is only run manually when needed
+  migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder # Use the builder stage which contains all devDependencies
+    container_name: onboarding-migration
+    env_file:
+      - .env.development
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    profiles:
+      - migration # This ensures it doesn't start automatically with 'up'
 
 volumes:
   mysql_data_dev:

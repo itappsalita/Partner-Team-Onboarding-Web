@@ -6,26 +6,7 @@ on:
       - dev
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install Dependencies
-        run: npm ci
-
-      # - name: Lint Check
-      #   run: npm run lint
-
   deploy:
-    needs: test
     runs-on: [self-hosted, dev]
     steps:
       - name: Checkout Code
@@ -34,9 +15,8 @@ jobs:
       - name: Deploy
         run: |
           cd /var/www/Partner-Team-Onboarding-Web
-          git pull origin dev
-          npm install
-          npx drizzle-kit generate
-          npx drizzle-kit migrate
-          npm run build
-          pm2 restart partner-onboarding
+          git fetch origin
+          git reset --hard origin/dev
+          docker compose -f docker-compose.dev.yml up -d --build
+          docker compose -f docker-compose.dev.yml --profile migration run --rm migration sh -c "npm run db:generate && npm run db:migrate"
+          docker image prune -f
