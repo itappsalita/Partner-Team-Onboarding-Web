@@ -324,8 +324,8 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 mt-4">
-                    {!isStructuralReadOnly && (
-                      <button 
+                    {!isStructuralReadOnly && activeTeam.tkpk1Number && activeTeam.tkpk1FilePath && (
+                      <button
                         onClick={() => openEditTeamModal(activeTeam)}
                         className="px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all flex items-center gap-2 shadow-sm active:scale-95"
                       >
