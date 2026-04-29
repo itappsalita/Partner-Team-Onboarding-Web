@@ -113,6 +113,7 @@ export const teamMembers = mysqlTable('team_members', {
   alitaExtEmail: varchar('alita_ext_email', { length: 150 }),
   alitaEmailPassword: varchar('alita_email_password', { length: 255 }),
   isAttendedTraining: int('is_attended_training').default(0).notNull(),
+  score: int('score'),
   isReturning: int('is_returning').default(0).notNull(),
   isActive: int('is_active').default(1).notNull(),
   createdAt: timestamp('created_at').defaultNow(),
