@@ -433,11 +433,11 @@ export default function RequestsPage() {
               <p className="text-[10px] font-medium text-alita-gray-400 mt-0.5 italic">* Jumlah personil per 1 tim.</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Site ID (Opsional)</label>
-              <input 
-                type="text" 
+              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Project ID (Opsional)</label>
+              <input
+                type="text"
                 className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
-                placeholder="ID Project / Site"
+                placeholder="Masukkan Project ID"
                 value={formData.siteId}
                 onChange={(e) => setFormData({...formData, siteId: e.target.value})}
               />
