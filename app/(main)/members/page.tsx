@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import TeamManagement from "../../../components/TeamManagement";
 
 export default function MembersPage() {
   const [members, setMembers] = useState<any[]>([]);
@@ -8,6 +9,8 @@ export default function MembersPage() {
   const [search, setSearch] = useState("");
   const [filterPosition, setFilterPosition] = useState("");
   const [filterCertified, setFilterCertified] = useState("");
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [loadingAssignment, setLoadingAssignment] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
@@ -30,6 +33,23 @@ export default function MembersPage() {
   }, [fetchMembers]);
 
   useEffect(() => { setCurrentPage(1); }, [search, filterPosition, filterCertified]);
+
+  const handleOpenTeam = async (dataTeamPartnerId: string) => {
+    if (!dataTeamPartnerId) return;
+    setLoadingAssignment(true);
+    try {
+      const res = await fetch("/api/data-team");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const assignment = data.find((a: any) => a.id === dataTeamPartnerId);
+        if (assignment) setSelectedAssignment(assignment);
+      }
+    } catch {
+      console.error("Failed to fetch assignment");
+    } finally {
+      setLoadingAssignment(false);
+    }
+  };
 
   const filtered = members.filter(m => {
     if (filterPosition && m.position !== filterPosition) return false;
@@ -155,7 +175,13 @@ export default function MembersPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-sm font-bold text-alita-black tracking-tight">{m.name}</span>
+                        <button
+                          onClick={() => handleOpenTeam(m.team?.dataTeamPartnerId)}
+                          className="text-sm font-bold text-alita-black tracking-tight hover:text-alita-orange hover:underline transition-colors text-left"
+                          title="Klik untuk lihat detail tim"
+                        >
+                          {loadingAssignment ? "..." : m.name}
+                        </button>
                         {m.isReturning === 1 && (
                           <span title="Returning Personnel" className="w-4 h-4 flex items-center justify-center bg-orange-50 border border-orange-100 rounded-full text-alita-orange shrink-0">
                             <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15l-2 5l-4-4l-1 1l-4-4l11-13l11 13l-4 4l-1-1l-4 4l-2-5Z"/></svg>
@@ -259,6 +285,19 @@ export default function MembersPage() {
           </div>
         )}
       </div>
+
+      {/* TeamManagement Modal */}
+      {selectedAssignment && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm" onClick={() => setSelectedAssignment(null)} />
+          <div className="relative w-full max-w-7xl z-10 animate-in fade-in zoom-in duration-300">
+            <TeamManagement
+              assignment={selectedAssignment}
+              onClose={() => setSelectedAssignment(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
