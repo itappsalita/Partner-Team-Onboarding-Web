@@ -249,6 +249,13 @@ export default function MemberWizard({
             </p>
           </div>
 
+          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-center gap-3">
+            <span className="text-base shrink-0">⚠️</span>
+            <p className="text-[11px] font-bold text-yellow-800 leading-normal">
+              Cek dan scan ulang KTP jika data yang muncul tidak sesuai dengan KTP fisik.
+            </p>
+          </div>
+
           <div className="space-y-5">
             <div>
               <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Nama Lengkap (Sesuai KTP)</label>
