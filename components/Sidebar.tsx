@@ -38,6 +38,11 @@ const icons: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   ),
+  members: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
+    </svg>
+  ),
 };
 
 const menuItems = [
@@ -46,6 +51,7 @@ const menuItems = [
   { name: "Data Team Partner", href: "/data-team", iconKey: "dataTeam" },
   { name: "QA Training", href: "/qa-training", iconKey: "qaTraining" },
   { name: "Publish Certificate", href: "/certificates", iconKey: "certificates" },
+  { name: "Database Anggota", href: "/members", iconKey: "members" },
   { name: "User Settings", href: "/users", iconKey: "users" },
 ];
 
@@ -55,6 +61,7 @@ const roleAccess: Record<string, string[]> = {
   "Data Team Partner": ["SUPERADMIN", "PROCUREMENT", "PARTNER", "QA", "PEOPLE_CULTURE"],
   "QA Training": ["SUPERADMIN", "QA"],
   "Publish Certificate": ["SUPERADMIN", "PEOPLE_CULTURE"],
+  "Database Anggota": ["SUPERADMIN", "PMO_OPS", "PROCUREMENT", "QA", "PEOPLE_CULTURE"],
   "User Settings": ["SUPERADMIN"],
 };
 

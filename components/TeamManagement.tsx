@@ -43,6 +43,28 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
   // Member Edit State
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editForm, setEditForm] = useState({ position: '', selfieFile: null as File | null });
+  const [exportingTeamId, setExportingTeamId] = useState<string | null>(null);
+
+  const handleExportTeam = async (team: any) => {
+    setExportingTeamId(team.id);
+    try {
+      const res = await fetch(`/api/data-team/export?id=${assignment.id}&teamId=${team.id}`);
+      if (!res.ok) throw new Error("Gagal mengunduh");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Tim_${team.displayId || team.teamNumber}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      alert("Terjadi kesalahan saat mengekspor data.");
+    } finally {
+      setExportingTeamId(null);
+    }
+  };
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -324,8 +346,8 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 mt-4">
-                    {!isStructuralReadOnly && (
-                      <button 
+                    {!isStructuralReadOnly && activeTeam.tkpk1Number && activeTeam.tkpk1FilePath && (
+                      <button
                         onClick={() => openEditTeamModal(activeTeam)}
                         className="px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-[11px] font-bold text-alita-gray-600 hover:bg-alita-gray-50 transition-all flex items-center gap-2 shadow-sm active:scale-95"
                       >
@@ -333,12 +355,12 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                       </button>
                     )}
                     {(userRole === 'PROCUREMENT' || userRole === 'SUPERADMIN') && (!activeTeam.status || activeTeam.status === 'SOURCING') && !isCanceled && (
-                      <button 
+                      <button
                         onClick={executeRequestTraining}
                         disabled={!isTeamValidToRequest || requesting === activeTeam.id}
                         title={!isTeamValidToRequest ? `Syarat: Tepat ${assignment.request?.membersPerTeam || 0} anggota aktif, minimal 1 Leader, dan Nomor TKPK1 terisi.` : ""}
                         className={`px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 ${
-                          isTeamValidToRequest 
+                          isTeamValidToRequest
                             ? 'bg-alita-black text-alita-white hover:bg-alita-gray-800 cursor-pointer'
                             : 'bg-alita-gray-100 text-alita-gray-400 cursor-not-allowed opacity-70 border border-alita-gray-300'
                         }`}
@@ -349,6 +371,22 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                           <>
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             AJUKAN TRAINING
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {!isPartner && (
+                      <button
+                        onClick={() => handleExportTeam(activeTeam)}
+                        disabled={exportingTeamId === activeTeam.id}
+                        className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-all shadow-sm active:scale-95 flex items-center gap-2 text-[11px] font-bold uppercase tracking-tight"
+                      >
+                        {exportingTeamId === activeTeam.id ? (
+                          <span className="animate-pulse italic">EXPORTING...</span>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download Excel
                           </>
                         )}
                       </button>
@@ -425,9 +463,95 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
               </div>
               
               {(!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath) && (
-                 <div className="bg-red-50 border border-red-100 p-8 rounded-2xl text-center mb-8">
-                    <p className="text-red-600 font-bold text-sm italic">⚠️ Wajib melengkapi data sertifikat TKPK1 (Nomor & Unggah File) pada menu "Edit Tim" sebelum dapat menambahkan anggota.</p>
+                 <div className="bg-red-50 border border-red-100 p-6 rounded-2xl text-center mb-4 space-y-4">
+                    <p className="text-red-600 font-bold text-sm italic">⚠️ Wajib melengkapi data sertifikat TKPK1 (Nomor & Unggah File) sebelum dapat menambahkan anggota.</p>
+                    {!isStructuralReadOnly && (
+                      <button
+                        onClick={() => openEditTeamModal(activeTeam)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-red-700 active:scale-95 transition-all shadow-md"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Lengkapi Data Tim Sekarang
+                      </button>
+                    )}
                  </div>
+              )}
+
+              {/* Inline Edit Member Panel — muncul di bawah warning merah saat edit diklik */}
+              {editingMember && (
+                <div className="mb-6 bg-alita-white border-2 border-alita-orange rounded-2xl overflow-hidden shadow-md animate-in slide-in-from-top-2 duration-300">
+                  <div className="bg-alita-orange px-5 py-3 flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-alita-white">Edit Posisi Anggota</span>
+                    <button onClick={() => setEditingMember(null)} className="text-alita-white hover:opacity-70 transition-opacity text-xl font-light leading-none">&times;</button>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div className="bg-alita-gray-50 border border-alita-gray-100 px-4 py-3 rounded-xl flex items-center gap-3">
+                      <span className="text-[10px] font-black uppercase text-alita-gray-400 tracking-widest">Nama:</span>
+                      <span className="text-sm font-bold text-alita-black">{editingMember.name}</span>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Pilih Jabatan</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {['Leader', 'Technician', 'Helper', 'Driver'].map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => setEditForm(prev => ({ ...prev, position: role }))}
+                            className={`py-3 px-4 rounded-xl border-2 text-[10px] font-bold transition-all uppercase tracking-tighter ${
+                              editForm.position === role
+                                ? 'border-alita-orange bg-orange-50 text-alita-orange'
+                                : 'border-alita-gray-100 text-alita-gray-400 hover:border-alita-gray-200'
+                            }`}
+                          >
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Upload Foto Selfie Baru (Opsional)</label>
+                      <div className="relative group">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setEditForm(prev => ({ ...prev, selfieFile: e.target.files?.[0] || null }))}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className={`p-4 border-2 border-dashed rounded-xl transition-all flex items-center justify-center gap-3 ${
+                          editForm.selfieFile ? 'border-green-200 bg-green-50' : 'border-alita-gray-100 group-hover:border-alita-orange group-hover:bg-orange-50'
+                        }`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                            editForm.selfieFile ? 'bg-green-100 text-green-600' : 'bg-alita-gray-100 text-alita-gray-400'
+                          }`}>
+                            {editForm.selfieFile ? (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            ) : (
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            )}
+                          </div>
+                          <span className={`text-[11px] font-bold ${editForm.selfieFile ? 'text-green-700' : 'text-alita-gray-400 italic'}`}>
+                            {editForm.selfieFile ? editForm.selfieFile.name : 'Klik untuk ubah foto selfie'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => setEditingMember(null)}
+                        className="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 hover:bg-alita-gray-50 rounded-xl border border-alita-gray-200 transition-all"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={handleSaveEditMember}
+                        disabled={submitting}
+                        className="flex-1 py-2.5 bg-alita-orange text-alita-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 shadow-md disabled:opacity-50 active:scale-[0.98] transition-all"
+                      >
+                        {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
                {/* Members Table with Pagination & Scroll */}
@@ -649,84 +773,6 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
           isStructuralReadOnly={isStructuralReadOnly}
         />
       )}
-      {/* Edit Member Modal */}
-      <Modal isOpen={editingMember !== null} onClose={() => setEditingMember(null)} title="Edit Data Anggota">
-        <div className="space-y-6">
-          <div className="bg-alita-gray-50 border border-alita-gray-100 p-4 rounded-xl">
-             <div className="text-[10px] font-black uppercase text-alita-gray-400 tracking-widest mb-1">Nama Anggota</div>
-             <div className="text-sm font-bold text-alita-black">{editingMember?.name}</div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Pilih Jabatan</label>
-              <div className="grid grid-cols-2 gap-3">
-                {['Leader', 'Technician', 'Helper', 'Driver'].map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => setEditForm(prev => ({ ...prev, position: role }))}
-                    className={`py-3 px-4 rounded-xl border-2 text-[10px] font-bold transition-all uppercase tracking-tighter ${
-                      editForm.position === role
-                        ? 'border-alita-orange bg-orange-50 text-alita-orange'
-                        : 'border-alita-gray-100 text-alita-gray-400 hover:border-alita-gray-200'
-                    }`}
-                  >
-                    {role}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Upload Foto Selfie Baru (Opsional)</label>
-              <div className="relative group">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setEditForm(prev => ({ ...prev, selfieFile: e.target.files?.[0] || null }))}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div className={`p-5 border-2 border-dashed rounded-2xl transition-all flex flex-col items-center justify-center gap-3 ${
-                   editForm.selfieFile ? 'border-green-200 bg-green-50' : 'border-alita-gray-100 group-hover:border-alita-orange group-hover:bg-orange-50'
-                }`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                     editForm.selfieFile ? 'bg-green-100 text-green-600' : 'bg-alita-gray-100 text-alita-gray-400'
-                  }`}>
-                    {editForm.selfieFile ? (
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    ) : (
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-[11px] font-bold ${editForm.selfieFile ? 'text-green-700' : 'text-alita-black'}`}>
-                      {editForm.selfieFile ? editForm.selfieFile.name : 'Klik untuk ubah foto selfie'}
-                    </div>
-                    {!editForm.selfieFile && <div className="text-[9px] font-medium text-alita-gray-400 mt-1 italic tracking-tight italic">Biarkan kosong jika tidak ingin mengubah foto</div>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t border-alita-gray-100">
-            <button
-              onClick={() => setEditingMember(null)}
-              className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 hover:bg-alita-gray-50 rounded-xl transition-all"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSaveEditMember}
-              disabled={submitting}
-              className="flex-1 py-3 bg-alita-orange text-alita-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 shadow-lg shadow-orange-100 disabled:opacity-50 active:scale-[0.98] transition-all"
-            >
-              {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

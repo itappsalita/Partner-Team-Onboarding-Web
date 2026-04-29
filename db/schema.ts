@@ -9,7 +9,7 @@ const uuidVarchar = (name: string) => varchar(name, { length: 36 });
 
 // --- ENUMS ---
 export const roleEnum = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_CULTURE'] as const;
-export const requestStatusEnum = ['REQUESTED', 'SOURCING', 'ON_TRAINING', 'TRAINED', 'COMPLETED'] as const;
+export const requestStatusEnum = ['REQUESTED', 'SOURCING', 'ON_TRAINING', 'TRAINED', 'COMPLETED', 'CANCELED'] as const;
 export const trainingResultEnum = ['PENDING', 'LULUS', 'TIDAK_LULUS'] as const;
 
 // --- TABLES ---
@@ -115,6 +115,7 @@ export const teamMembers = mysqlTable('team_members', {
   alitaExtEmail: varchar('alita_ext_email', { length: 150 }),
   alitaEmailPassword: varchar('alita_email_password', { length: 255 }),
   isAttendedTraining: int('is_attended_training').default(0).notNull(),
+  score: int('score'),
   isReturning: int('is_returning').default(0).notNull(),
   isActive: int('is_active').default(1).notNull(),
   createdAt: timestamp('created_at').defaultNow(),

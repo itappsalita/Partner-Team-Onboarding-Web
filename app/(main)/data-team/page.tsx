@@ -298,9 +298,19 @@ function DataTeamContent() {
           </p>
         </div>
         <div className="flex gap-2">
+          {!isPartner && (
+            <button
+              className="bg-green-50 border border-green-200 text-green-700 px-5 py-2.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-green-100 active:scale-95 transition-all whitespace-nowrap flex items-center gap-2"
+              onClick={() => handleExport()}
+              title="Download semua data anggota tanpa foto KTP/Selfie"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Excel (Semua)
+            </button>
+          )}
           {isProcurement && (
-            <button 
-              className="bg-alita-black text-alita-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-alita-gray-800 active:scale-95 transition-all whitespace-nowrap" 
+            <button
+              className="bg-alita-black text-alita-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-alita-gray-800 active:scale-95 transition-all whitespace-nowrap"
               onClick={() => setIsAssignModalOpen(true)}
             >
               + Assign Partner
@@ -515,16 +525,6 @@ function DataTeamContent() {
                               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                               VIEW DETAILS
                             </button>
-                            {!isPartner && (
-                              <button 
-                                className="px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 whitespace-nowrap" 
-                                title="Export Personnel to Excel"
-                                onClick={() => handleExport(dt.id)}
-                              >
-                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                <span className="text-[11px] font-bold uppercase tracking-tight">Download Excel</span>
-                              </button>
-                            )}
                           </div>
                         )}
                         {getWorstCaseStatus(dt) === 'CANCELED' && (

@@ -71,6 +71,21 @@ export default function RequestsPage() {
     setCurrentPage(1);
   }, [searchSow, searchPmo, filterProvinsi, activeTab]);
 
+  const handleCancel = async (id: string, displayId: string) => {
+    if (!confirm(`Yakin ingin membatalkan request ${displayId}? Tindakan ini tidak dapat diurungkan.`)) return;
+    try {
+      const res = await fetch(`/api/requests/${id}/cancel`, { method: "POST" });
+      if (res.ok) {
+        fetchRequests();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Gagal membatalkan request.");
+      }
+    } catch {
+      alert("Terjadi kesalahan sistem.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -102,6 +117,7 @@ export default function RequestsPage() {
       case "ON_TRAINING": return "bg-purple-50 text-purple-700 border-purple-100";
       case "TRAINED": return "bg-green-50 text-green-700 border-green-100";
       case "COMPLETED": return "bg-alita-black text-alita-white border-alita-black shadow-sm";
+      case "CANCELED": return "bg-red-50 text-red-500 border-red-100";
       default: return "bg-alita-gray-100 text-alita-gray-600 border-alita-gray-200";
     }
   };
@@ -113,6 +129,7 @@ export default function RequestsPage() {
       case "ON_TRAINING": return "Validated & On Training";
       case "TRAINED": return "Verified & Trained";
       case "COMPLETED": return "Certified & Completed";
+      case "CANCELED": return "Canceled";
       default: return status;
     }
   };
@@ -256,6 +273,7 @@ export default function RequestsPage() {
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Status</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Due Date</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Created At</th>
+                {isPmo && <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-alita-gray-50">
@@ -272,10 +290,11 @@ export default function RequestsPage() {
                     <td className="px-6 py-5"><div className="skeleton h-5 w-20 rounded-full" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-20" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-20" /></td>
+                    {isPmo && <td className="px-6 py-5" />}
                   </tr>
                 ))
               ) : currentItems.length === 0 ? (
-                <tr><td colSpan={10} className="px-6 py-16 text-center">
+                <tr><td colSpan={isPmo ? 11 : 10} className="px-6 py-16 text-center">
                   <svg className="w-12 h-12 text-alita-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <div className="text-sm font-bold text-alita-gray-400">Tidak ada data request</div>
                   <div className="text-xs text-alita-gray-300 mt-1">Coba ubah filter atau buat request baru</div>
@@ -334,6 +353,18 @@ export default function RequestsPage() {
                         {mounted ? new Date(req.createdAt).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : ""}
                       </div>
                     </td>
+                    {isPmo && (
+                      <td className="px-6 py-5">
+                        {req.status === "REQUESTED" && (
+                          <button
+                            onClick={() => handleCancel(req.id, req.displayId)}
+                            className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 hover:text-red-600 transition-all whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

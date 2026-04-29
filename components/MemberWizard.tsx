@@ -249,6 +249,13 @@ export default function MemberWizard({
             </p>
           </div>
 
+          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-center gap-3">
+            <span className="text-base shrink-0">⚠️</span>
+            <p className="text-[11px] font-bold text-yellow-800 leading-normal">
+              Cek dan scan ulang KTP jika data yang muncul tidak sesuai dengan KTP fisik.
+            </p>
+          </div>
+
           <div className="space-y-5">
             <div>
               <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Nama Lengkap (Sesuai KTP)</label>
@@ -300,7 +307,7 @@ export default function MemberWizard({
             <div className="border-2 border-dashed border-alita-gray-200 rounded-2xl p-6 bg-alita-gray-50/50 hover:bg-alita-gray-100/50 transition-all relative group">
               <div className="flex flex-col items-center text-center">
                 {selfiePreview ? (
-                  <div className="relative w-24 h-24 mb-3">
+                  <div className="relative w-40 h-40 mb-3">
                     <img src={selfiePreview} alt="Selfie Preview" className="w-full h-full object-cover rounded-xl border-2 border-alita-orange shadow-md" />
                     <div className="absolute -top-2 -right-2 bg-alita-orange text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-lg">✓</div>
                   </div>
@@ -320,13 +327,20 @@ export default function MemberWizard({
             </div>
 
             {memberForm.ktpFile && (
-              <div className="flex items-center gap-4 bg-alita-gray-50 border border-alita-gray-100 p-4 rounded-xl">
-                <div className="w-10 h-10 bg-alita-white rounded flex items-center justify-center text-lg border border-alita-gray-200 shadow-sm">📄</div>
-                <div className="flex-1 overflow-hidden">
-                  <div className="text-[11px] font-black text-alita-black truncate uppercase">{memberForm.ktpFile.name}</div>
-                  <div className="text-[9px] font-bold text-alita-gray-400 tracking-wider">FILE KTP TERUNGGAH</div>
+              <div className="border border-alita-gray-200 rounded-2xl overflow-hidden bg-alita-gray-50">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-alita-gray-100">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-alita-gray-400">📎 File KTP Terunggah</span>
+                  <span className="text-[9px] font-bold text-alita-gray-300 truncate max-w-[200px]">{memberForm.ktpFile.name}</span>
                 </div>
-                <button type="button" onClick={() => setMemberStep(1)} className="text-[10px] font-black text-alita-orange hover:brightness-90 uppercase">Ganti File</button>
+                {ktpPreview && (
+                  <div className="p-3">
+                    <img
+                      src={ktpPreview}
+                      alt="Thumbnail KTP"
+                      className="w-full aspect-[1.58/1] object-contain rounded-xl border border-alita-gray-100 bg-alita-white shadow-sm"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

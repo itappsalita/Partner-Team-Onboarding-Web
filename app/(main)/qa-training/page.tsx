@@ -53,6 +53,7 @@ function QaTrainingContent() {
   const [scheduleForm, setScheduleForm] = useState({ trainingDate: "" });
   const [evaluationForm, setEvaluationForm] = useState({
     attendedMemberIds: [] as string[],
+    memberScores: {} as Record<string, string>,
     result: "PENDING",
     whatsappGroupJustification: "",
     evaluationNotes: ""
@@ -121,9 +122,16 @@ function QaTrainingContent() {
     setSelectedTask(item);
     // Preset attended members if already evaluated before
     const attended = item.members?.filter((m: any) => m.isAttendedTraining === 1).map((m: any) => m.id) || [];
-    
+
+    // Preset existing scores
+    const scores: Record<string, string> = {};
+    item.members?.filter((m: any) => m.isReturning === 0).forEach((m: any) => {
+      scores[m.id] = m.score !== null && m.score !== undefined ? String(m.score) : "";
+    });
+
     setEvaluationForm({
       attendedMemberIds: attended,
+      memberScores: scores,
       result: item.trainingProcess?.result || "PENDING",
       whatsappGroupJustification: item.trainingProcess?.whatsappGroupJustification || "",
       evaluationNotes: item.trainingProcess?.evaluationNotes || ""
@@ -175,7 +183,8 @@ function QaTrainingContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamId: selectedTask.id,
-          ...evaluationForm
+          ...evaluationForm,
+          memberScores: evaluationForm.memberScores
         })
       });
       if (res.ok) {
@@ -576,6 +585,24 @@ function QaTrainingContent() {
                           <span className="text-xs font-bold text-alita-black tracking-tight group-hover:text-alita-orange transition-colors">{m.name}</span>
                           <span className="text-[9px] font-black uppercase text-alita-gray-400 tracking-wider leading-none mt-0.5">{m.position}</span>
                         </label>
+
+                        {/* Input Nilai */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0-100"
+                            value={evaluationForm.memberScores[m.id] ?? ""}
+                            onChange={e => setEvaluationForm(prev => ({
+                              ...prev,
+                              memberScores: { ...prev.memberScores, [m.id]: e.target.value }
+                            }))}
+                            disabled={selectedTask?.status === 'TRAINING_EVALUATED' || selectedTask?.status === 'COMPLETED'}
+                            className="w-16 px-2 py-1.5 text-center text-xs font-black bg-alita-gray-50 border border-alita-gray-200 rounded-lg focus:border-alita-orange focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          />
+                          <span className="text-[9px] font-black text-alita-gray-400 uppercase">Nilai</span>
+                        </div>
                       </div>
                     ))}
                     {selectedTask.members?.filter((m: any) => m.isReturning === 1).length > 0 && (
