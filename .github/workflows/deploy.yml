@@ -17,6 +17,7 @@ jobs:
           cd /var/www/Partner-Team-Onboarding-Web
           git fetch origin
           git reset --hard origin/main
-          docker compose -f docker-compose.prod.yml up -d --build
-          docker compose -f docker-compose.prod.yml --profile migration run --rm migration sh -c "npm run db:generate && npm run db:migrate"
+          docker compose -f docker-compose.dev.yml build --no-cache
+          docker compose -f docker-compose.dev.yml up -d --remove-orphans
+          docker compose -f docker-compose.dev.yml --profile migration run --rm migration sh -c "npm run db:generate && npm run db:migrate"
           docker image prune -f
