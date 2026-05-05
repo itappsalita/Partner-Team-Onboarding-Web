@@ -41,8 +41,8 @@ async function seedSuperAdmin() {
 
     const db = drizzle(connection);
 
-    const superAdminEmail = "superadmin@alitaprayamitra.com";
-    const superAdminPassword = "SuperAdmin123!";
+    const superAdminEmail = "superadmin@alita.id";
+    const superAdminPassword = "password123!";
 
     console.log("🔄 Checking for existing SUPERADMIN...");
 
@@ -81,8 +81,8 @@ async function seedSuperAdmin() {
 ║    ✓ SUPERADMIN USER CREATED SUCCESSFULLY             ║
 ╠════════════════════════════════════════════════════════╣
 ║                                                        ║
-║  📧 Email:    superadmin@alitaprayamitra.com           ║
-║  🔐 Password: SuperAdmin123!                          ║
+║  📧 Email:    superadmin@alita.id                     ║
+║  🔐 Password: password123!                            ║
 ║  👤 Name:     Super Administrator                     ║
 ║                                                        ║
 ╠════════════════════════════════════════════════════════╣
