@@ -38,21 +38,39 @@ export async function GET(req: Request) {
       orderBy: (dt, { desc }) => [desc(dt.createdAt)]
     });
 
+    const formatDate = (date: Date | string | null | undefined): string =>
+      date ? new Date(date).toLocaleDateString("id-ID") : "-";
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Data Team Personnel");
 
     // Define Columns
     worksheet.columns = [
-      { header: "No Tim", key: "teamNo", width: 20 },
+      { header: "No Tim", key: "teamNo", width: 18 },
       { header: "Status Tim", key: "teamStatus", width: 15 },
-      { header: "SOW", key: "sow", width: 40 },
+      { header: "SOW", key: "sow", width: 35 },
       { header: "Nama Anggota", key: "memberName", width: 25 },
-      { header: "Perusahaan", key: "company", width: 30 },
-      { header: "Posisi Anggota", key: "memberPosition", width: 20 },
+      { header: "Perusahaan", key: "company", width: 28 },
+      { header: "Posisi Anggota", key: "memberPosition", width: 18 },
       { header: "No KTP", key: "nik", width: 20 },
-      { header: "No Handphone Anggota", key: "memberPhone", width: 25 },
+      { header: "No Handphone Anggota", key: "memberPhone", width: 22 },
+      { header: "Emergency contact phone", key: "emergencyPhone", width: 24 },
+      { header: "Emergency contact name", key: "emergencyName", width: 24 },
+      { header: "Alamat email", key: "email", width: 28 },
       { header: "Provinsi", key: "provinsi", width: 20 },
-      { header: "Area", key: "area", width: 20 },
+      { header: "Status Training", key: "trainingStatus", width: 16 },
+      { header: "Nilai Training", key: "trainingScore", width: 14 },
+      { header: "TKPK No", key: "tkpkNo", width: 20 },
+      { header: "First Aid certificate No", key: "firstAidNo", width: 24 },
+      { header: "Electrical certificate No", key: "electricalNo", width: 24 },
+      { header: "Training Certificate No", key: "certNo", width: 24 },
+      { header: "Email ext", key: "emailExt", width: 28 },
+      { header: "Request Date", key: "requestDate", width: 16 },
+      { header: "Due Date", key: "dueDate", width: 16 },
+      { header: "Assigned Team Date", key: "assignedDate", width: 20 },
+      { header: "Data Team Completed Date", key: "completedDate", width: 24 },
+      { header: "Training Date", key: "trainingDate", width: 16 },
+      { header: "Certificate date created", key: "certificateDate", width: 24 },
     ];
 
     // Style Header
@@ -81,8 +99,23 @@ export async function GET(req: Request) {
           row.getCell("memberPosition").value = member.position || "-";
           row.getCell("nik").value = member.nik || "-";
           row.getCell("memberPhone").value = member.phone || "-";
+          row.getCell("emergencyPhone").value = member.emergencyContactPhone || "-";
+          row.getCell("emergencyName").value = member.emergencyContactName || "-";
+          row.getCell("email").value = member.alitaExtEmail || "-";
           row.getCell("provinsi").value = assignment.request?.provinsi || "-";
-          row.getCell("area").value = assignment.request?.area || "-";
+          row.getCell("trainingStatus").value = member.isAttendedTraining === 1 ? "LULUS" : "BELUM";
+          row.getCell("trainingScore").value = member.score ?? "-";
+          row.getCell("tkpkNo").value = team.tkpk1Number || "-";
+          row.getCell("firstAidNo").value = team.firstAidNumber || "-";
+          row.getCell("electricalNo").value = team.electricalNumber || "-";
+          row.getCell("certNo").value = member.certificateNumber ?? "-";
+          row.getCell("emailExt").value = member.alitaExtEmail || "-";
+          row.getCell("requestDate").value = formatDate(assignment.request?.createdAt);
+          row.getCell("dueDate").value = formatDate(assignment.request?.dueDate);
+          row.getCell("assignedDate").value = formatDate(assignment.createdAt);
+          row.getCell("completedDate").value = formatDate(team.trainingProcess?.createdAt);
+          row.getCell("trainingDate").value = formatDate(team.trainingProcess?.trainingDate);
+          row.getCell("certificateDate").value = formatDate(member.certificateDate);
 
           currentRow++;
         }

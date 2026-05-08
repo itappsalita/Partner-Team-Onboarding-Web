@@ -1,4 +1,4 @@
-import { mysqlTable, int, varchar, timestamp, text, mysqlEnum, foreignKey, binary, customType } from 'drizzle-orm/mysql-core';
+import { mysqlTable, int, varchar, timestamp, text, mysqlEnum } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 
 /**
@@ -108,6 +108,8 @@ export const teamMembers = mysqlTable('team_members', {
   position: varchar('position', { length: 100 }).notNull(),
   nik: varchar('nik', { length: 50 }).notNull(),
   phone: varchar('phone', { length: 30 }).notNull(),
+  emergencyContactName: varchar('emergency_contact_name', { length: 150 }),
+  emergencyContactPhone: varchar('emergency_contact_phone', { length: 30 }),
   ktpFilePath: varchar('ktp_file_path', { length: 255 }).notNull(),
   selfieFilePath: varchar('selfie_file_path', { length: 255 }),
   certificateFilePath: varchar('certificate_file_path', { length: 255 }),
@@ -118,6 +120,7 @@ export const teamMembers = mysqlTable('team_members', {
   score: int('score'),
   isReturning: int('is_returning').default(0).notNull(),
   isActive: int('is_active').default(1).notNull(),
+  certificateDate: timestamp('certificate_date'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
