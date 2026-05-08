@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Modal from "../../../components/Modal";
 
@@ -16,12 +16,28 @@ const PROVINSI_INDONESIA = [
 
 const SORTED_PROVINSI_INDONESIA = [...PROVINSI_INDONESIA].sort((a, b) => a.localeCompare(b, "id"));
 
+interface PartnerRequest {
+  id: string;
+  displayId: string;
+  sowPekerjaan: string;
+  deskripsi: string;
+  provinsi: string;
+  area: string;
+  siteId?: string;
+  jumlahKebutuhan: number;
+  totalRegisteredTeams: number;
+  pmo?: { name: string };
+  status: string;
+  dueDate?: string;
+  createdAt: string;
+}
+
 export default function RequestsPage() {
   const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role;
+  const userRole = (session?.user as { role?: string })?.role;
   const isPmo = userRole === "PMO_OPS" || userRole === "SUPERADMIN";
 
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<PartnerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -34,10 +50,23 @@ export default function RequestsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [sowDropdownOpen, setSowDropdownOpen] = useState(false);
+  const sowDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sowDropdownRef.current && !sowDropdownRef.current.contains(e.target as Node)) {
+        setSowDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Form states
   const [formData, setFormData] = useState({
     deskripsi: "",
-    sowPekerjaan: "",
+    sowPekerjaan: [] as string[],
     provinsi: "",
     area: "",
     jumlahKebutuhan: "",
@@ -88,22 +117,26 @@ export default function RequestsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.sowPekerjaan.length === 0) {
+      alert("Pilih minimal satu SOW Pekerjaan.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, sowPekerjaan: formData.sowPekerjaan.join(", ") })
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({deskripsi: "", sowPekerjaan: "", provinsi: "", area: "", jumlahKebutuhan: "", membersPerTeam: "3", siteId: "", dueDate: "" });
+        setFormData({deskripsi: "", sowPekerjaan: [], provinsi: "", area: "", jumlahKebutuhan: "", membersPerTeam: "3", siteId: "", dueDate: "" });
         fetchRequests();
       } else {
         const error = await res.json();
         alert(error.error || "Gagal membuat request");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
@@ -260,7 +293,7 @@ export default function RequestsPage() {
 
       <div className="bg-alita-white rounded-2xl shadow-sm border border-alita-gray-100 overflow-hidden flex flex-col">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-380px)]">
-          <table className="w-full min-w-[1320px] text-left border-collapse">
+          <table className="w-full min-w-330 text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-alita-gray-50">
               <tr className="border-b border-alita-gray-100">
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Nomor</th>
@@ -305,7 +338,7 @@ export default function RequestsPage() {
                     <td className="px-6 py-5 text-sm font-bold text-alita-gray-400 leading-none">#{req.displayId}</td>
                     <td className="px-6 py-5">
                       <div 
-                        className="text-sm font-bold text-alita-black tracking-tight max-w-[200px] truncate" 
+                        className="text-sm font-bold text-alita-black tracking-tight max-w-50 truncate" 
                         title={req.sowPekerjaan}
                       >
                         {req.sowPekerjaan}
@@ -313,7 +346,7 @@ export default function RequestsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <div
-                        className="text-sm font-bold text-alita-gray-600 tracking-tight max-w-[240px] truncate"
+                        className="text-sm font-bold text-alita-gray-600 tracking-tight max-w-60 truncate"
                         title={req.deskripsi}
                       >
                         {req.deskripsi || "-"}
@@ -391,7 +424,7 @@ export default function RequestsPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'
@@ -419,21 +452,47 @@ export default function RequestsPage() {
         title="Create New Partner Request"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" ref={sowDropdownRef}>
             <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">SOW Pekerjaan</label>
-            <select
-              className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
-              value={formData.sowPekerjaan}
-              onChange={(e) => setFormData({...formData, sowPekerjaan: e.target.value})}
-              required
-            >
-              <option value="">Pilih SOW Pekerjaan</option>
-              <option value="Dismantle">Dismantle</option>
-              <option value="Newlink">Newlink</option>
-              <option value="Reroute">Reroute</option>
-              <option value="Swap upgrade">Swap upgrade</option>
-              <option value="Rewiring">Rewiring</option>
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSowDropdownOpen((o) => !o)}
+                className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold text-left flex items-center justify-between focus:outline-none focus:border-alita-orange focus:ring-4 focus:ring-alita-orange-glow transition-all"
+              >
+                <span className={formData.sowPekerjaan.length === 0 ? "text-alita-gray-400" : "text-alita-black"}>
+                  {formData.sowPekerjaan.length === 0
+                    ? "Pilih SOW Pekerjaan"
+                    : formData.sowPekerjaan.join(", ")}
+                </span>
+                <svg className={`w-4 h-4 text-alita-gray-400 transition-transform ${sowDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {sowDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-alita-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  {["Dismantle", "Newlink", "Reroute", "Swap upgrade", "Rewiring"].map((sow) => {
+                    const selected = formData.sowPekerjaan.includes(sow);
+                    return (
+                      <button
+                        key={sow}
+                        type="button"
+                        onClick={() => {
+                          const updated = selected
+                            ? formData.sowPekerjaan.filter((v) => v !== sow)
+                            : [...formData.sowPekerjaan, sow];
+                          setFormData({ ...formData, sowPekerjaan: updated });
+                        }}
+                        className={`w-full px-4 py-2.5 text-sm font-bold text-left flex items-center gap-3 transition-colors ${selected ? "bg-orange-50 text-alita-orange" : "text-alita-gray-700 hover:bg-alita-gray-50"}`}
+                      >
+                        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${selected ? "bg-alita-orange border-alita-orange" : "border-alita-gray-300"}`}>
+                          {selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </span>
+                        {sow}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Deskripsi</label>
@@ -524,7 +583,7 @@ export default function RequestsPage() {
 
           <button 
             type="submit" 
-            className="w-full mt-4 py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+            className="w-full mt-4 py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? "Memproses..." : "Submit New Request"}

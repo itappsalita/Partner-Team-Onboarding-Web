@@ -271,16 +271,16 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         {/* Sidebar Tim (Desktop: Samping, Mobile: Atas/Carousel) */}
-        <aside className="w-full lg:w-[280px] border-b lg:border-r border-alita-gray-100 bg-alita-gray-50/50 flex flex-col pt-4 lg:pt-6 shrink-0">
+        <aside className="w-full lg:w-70 border-b lg:border-r border-alita-gray-100 bg-alita-gray-50/50 flex flex-col pt-4 lg:pt-6 shrink-0">
           <div className="px-5 mb-2 lg:mb-4 border-b lg:border-b-0 border-alita-gray-100 pb-2 lg:pb-0">
-            <h3 className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.1em] text-alita-gray-400">Daftar Tim Lapangan</h3>
+            <h3 className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Daftar Tim Lapangan</h3>
           </div>
           <div className="flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto px-4 pb-4 lg:pb-6 custom-scrollbar flex gap-3 lg:gap-0 lg:space-y-3">
             {Array.isArray(teams) && teams.map(t => (
               <div 
                 key={t.id} 
                 onClick={() => setActiveTeam(t)}
-                className={`p-3 lg:p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 shrink-0 w-[180px] lg:w-full ${
+                className={`p-3 lg:p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 shrink-0 w-45 lg:w-full ${
                   activeTeam?.id === t.id 
                     ? 'bg-alita-orange text-alita-white border-alita-orange shadow-[0_8px_20px_rgba(255,122,0,0.2)] scale-[1.02]' 
                     : 'bg-alita-white text-alita-black border-alita-gray-100 hover:border-alita-gray-300 shadow-sm'
@@ -430,7 +430,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                     </a>
                   )}
                   {isPartner && activeTeam.status !== 'SOURCING' && activeTeam.status && (
-                    <div className="mt-1 w-full text-center px-3 py-2 rounded-lg text-[9px] font-black text-alita-gray-400 bg-alita-gray-50 border border-alita-gray-200 border-dashed shrink-0 min-w-[150px] lg:min-w-0">
+                    <div className="mt-1 w-full text-center px-3 py-2 rounded-lg text-[9px] font-black text-alita-gray-400 bg-alita-gray-50 border border-alita-gray-200 border-dashed shrink-0 min-w-37.5 lg:min-w-0">
                       LOCKED (IN PROGRESS)
                     </div>
                   )}
@@ -556,8 +556,8 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
                {/* Members Table with Pagination & Scroll */}
                <div className="bg-alita-white border border-alita-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-                 <div className="overflow-x-auto overflow-y-auto max-h-[400px] custom-scrollbar">
-                   <table className="w-full border-collapse min-w-[900px]">
+                 <div className="overflow-x-auto overflow-y-auto max-h-100 custom-scrollbar">
+                   <table className="w-full border-collapse min-w-225">
                      <thead className="sticky top-0 z-10 bg-alita-gray-50 uppercase">
                        <tr>
                          <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">#</th>
@@ -567,7 +567,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                          <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">KTP</th>
                          <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Posisi</th>
                          <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Training</th>
-                         <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Akses Sistem</th>
+                         <th className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Permit Access</th>
                          {(!isCanceled && (isPartner || isSuperAdmin)) && (
                            <th className="px-5 py-4 text-center text-[10px] font-black uppercase tracking-widest text-alita-gray-400 border-b border-alita-gray-100">Action</th>
                          )}
@@ -625,7 +625,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                                   {m.isAttendedTraining === 1 ? 'Trained' : 'Untrained'}
                                 </div>
                              </td>
-                             <td className="px-5 py-5 min-w-[200px]">
+                             <td className="px-5 py-5 min-w-50">
                                {(m.alitaExtEmail || m.certificateFilePath) ? (
                                  <div className="flex flex-col gap-3">
                                    <div className="space-y-1.5">
@@ -744,7 +744,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
             <div className="flex-1 flex flex-col items-center justify-center text-alita-gray-200">
               <div className="text-7xl mb-6 opacity-30 select-none">🏗️</div>
               <h3 className="text-lg font-black tracking-tight text-alita-gray-300">Tim Belum Dipilih</h3>
-              <p className="text-sm font-bold text-alita-gray-300/60 max-w-[280px] text-center mt-2 leading-relaxed">Silakan pilih tim dari panel sebelah kiri atau buat tim baru.</p>
+              <p className="text-sm font-bold text-alita-gray-300/60 max-w-70 text-center mt-2 leading-relaxed">Silakan pilih tim dari panel sebelah kiri atau buat tim baru.</p>
             </div>
           )}
         </main>
