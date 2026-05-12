@@ -78,9 +78,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { sowPekerjaan, provinsi, area, jumlahKebutuhan, membersPerTeam, siteId } = body;
+    const { sowPekerjaan, deskripsi, provinsi, area, jumlahKebutuhan, membersPerTeam, siteId, dueDate } = body;
 
-    if (!sowPekerjaan || !provinsi || !area || !jumlahKebutuhan || !membersPerTeam) {
+    if (!sowPekerjaan || !deskripsi || !provinsi || !area || !jumlahKebutuhan || !membersPerTeam || !dueDate) {
       return NextResponse.json({ error: "Missing required fields (including membersPerTeam)" }, { status: 400 });
     }
 
@@ -96,6 +96,8 @@ export async function POST(req: Request) {
           jumlahKebutuhan: parseInt(jumlahKebutuhan),
           membersPerTeam: parseInt(membersPerTeam),
           siteId,
+          deskripsi,
+          dueDate: new Date(dueDate),
           status: 'REQUESTED'
         });
 

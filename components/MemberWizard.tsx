@@ -3,10 +3,21 @@
 import { useState } from "react";
 import Modal from "./Modal";
 
+interface TeamMember {
+  position: string;
+  isActive: number;
+  name: string;
+}
+
+interface ActiveTeam {
+  id: string | number;
+  members?: TeamMember[];
+}
+
 interface MemberWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTeam: any;
+  activeTeam: ActiveTeam;
   onSave: () => void;
   isStructuralReadOnly: boolean;
 }
@@ -31,6 +42,8 @@ export default function MemberWizard({
     position: "",
     nik: "",
     phone: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
     ktpFile: null as File | null,
     selfieFile: null as File | null,
   });
@@ -90,7 +103,7 @@ export default function MemberWizard({
       }));
       
       scanSuccess = true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("AI OCR Error:", err);
       if (!ocrError) {
         setOcrError("Gagal memproses KTP via AI. Silakan isi manual.");
@@ -124,7 +137,7 @@ export default function MemberWizard({
     }
   };
 
-  const handleAddMember = async (e: React.FormEvent) => {
+  const handleAddMember = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!activeTeam || isStructuralReadOnly) return;
     
@@ -134,7 +147,7 @@ export default function MemberWizard({
     }
 
     if (memberForm.position === "Leader") {
-      const existingLeader = activeTeam.members?.find((m: any) => m.position === "Leader" && m.isActive === 1);
+      const existingLeader = activeTeam.members?.find((m: TeamMember) => m.position === "Leader" && m.isActive === 1);
       if (existingLeader) {
         alert(`Tim ini sudah memiliki Leader: ${existingLeader.name}. Silakan hapus leader lama terlebih dahulu jika ingin menggantinya.`);
         return;
@@ -145,11 +158,13 @@ export default function MemberWizard({
     try {
       const formData = new FormData();
       formData.append("teamId", activeTeam.id.toString());
-      formData.append("memberNumber", (activeTeam.members?.length + 1 || 1).toString());
+      formData.append("memberNumber", ((activeTeam.members?.length ?? 0) + 1).toString());
       formData.append("name", memberForm.name);
       formData.append("position", memberForm.position);
       formData.append("nik", memberForm.nik);
       formData.append("phone", memberForm.phone);
+      if (memberForm.emergencyContactName) formData.append("emergencyContactName", memberForm.emergencyContactName);
+      if (memberForm.emergencyContactPhone) formData.append("emergencyContactPhone", memberForm.emergencyContactPhone);
       if (memberForm.ktpFile) formData.append("ktpFile", memberForm.ktpFile);
       if (memberForm.selfieFile) formData.append("selfieFile", memberForm.selfieFile);
 
@@ -165,7 +180,7 @@ export default function MemberWizard({
         const err = await res.json();
         alert(err.error || "Gagal menambah anggota");
       }
-    } catch (err) {
+    } catch {
       alert("Sistem error.");
     } finally {
       setSubmitting(false);
@@ -176,7 +191,7 @@ export default function MemberWizard({
     setMemberStep(1);
     setKtpPreview(null);
     setSelfiePreview(null);
-    setMemberForm({ name: "", position: "", nik: "", phone: "", ktpFile: null, selfieFile: null });
+    setMemberForm({ name: "", position: "", nik: "", phone: "", emergencyContactName: "", emergencyContactPhone: "", ktpFile: null, selfieFile: null });
     onClose();
   };
 
@@ -196,6 +211,7 @@ export default function MemberWizard({
             >
               {ktpPreview ? (
                 <div className="w-full h-full p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={ktpPreview} alt="KTP Preview" className="w-full h-full object-contain rounded-xl" />
                   {isScanning && (
                     <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-alita-white z-10">
@@ -235,7 +251,7 @@ export default function MemberWizard({
             
             <div className="mt-6 flex items-center justify-center gap-2 opacity-50">
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-alita-gray-400">Powered by</span>
-              <span className="text-[10px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-red-500">Google AI</span>
+              <span className="text-[10px] font-black text-transparent bg-clip-text bg-linear-to-r from-blue-500 via-purple-500 to-red-500">Google AI</span>
             </div>
           </div>
           {ocrError && <p className="mt-4 text-[11px] font-bold text-red-500 bg-red-50 px-4 py-2 rounded-lg border border-red-100">{ocrError}</p>}
@@ -249,9 +265,16 @@ export default function MemberWizard({
             </p>
           </div>
 
+          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-center gap-3">
+            <span className="text-base shrink-0">⚠️</span>
+            <p className="text-[11px] font-bold text-yellow-800 leading-normal">
+              Cek dan scan ulang KTP jika data yang muncul tidak sesuai dengan KTP fisik.
+            </p>
+          </div>
+
           <div className="space-y-5">
             <div>
-              <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Nama Lengkap (Sesuai KTP)</label>
+              <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Nama Lengkap (Sesuai KTP)</label>
               <input 
                 type="text" 
                 className="w-full px-4 py-3 bg-alita-gray-100/50 border border-alita-gray-200 rounded-xl text-sm font-bold cursor-not-allowed select-none text-alita-gray-500" 
@@ -264,7 +287,7 @@ export default function MemberWizard({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">NIK KTP (16 Digit)</label>
+                <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">NIK KTP (16 Digit)</label>
                  <input 
                   type="text" 
                   className="w-full px-4 py-3 bg-alita-gray-100/50 border border-alita-gray-200 rounded-xl text-sm font-bold cursor-not-allowed select-none text-alita-gray-500" 
@@ -275,13 +298,24 @@ export default function MemberWizard({
                 />
               </div>
               <div>
-                <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Nomor WhatsApp</label>
+                <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Nomor WhatsApp</label>
                 <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.phone} onChange={e => setMemberForm({...memberForm, phone: e.target.value})} required placeholder="0812xxxx" />
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Nama Emergency Contact</label>
+                <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.emergencyContactName} onChange={e => setMemberForm({...memberForm, emergencyContactName: e.target.value})} placeholder="Nama kontak darurat" />
+              </div>
+              <div>
+                <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Phone Emergency Contact</label>
+                <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.emergencyContactPhone} onChange={e => setMemberForm({...memberForm, emergencyContactPhone: e.target.value})} placeholder="0812xxxx" />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-black text-alita-gray-400 tracking-[0.1em] uppercase mb-2">Target Posisi Pekerjaan</label>
+              <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Target Posisi Pekerjaan</label>
               <select 
                 className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" 
                 value={memberForm.position} 
@@ -300,7 +334,8 @@ export default function MemberWizard({
             <div className="border-2 border-dashed border-alita-gray-200 rounded-2xl p-6 bg-alita-gray-50/50 hover:bg-alita-gray-100/50 transition-all relative group">
               <div className="flex flex-col items-center text-center">
                 {selfiePreview ? (
-                  <div className="relative w-24 h-24 mb-3">
+                  <div className="relative w-40 h-40 mb-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={selfiePreview} alt="Selfie Preview" className="w-full h-full object-cover rounded-xl border-2 border-alita-orange shadow-md" />
                     <div className="absolute -top-2 -right-2 bg-alita-orange text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-lg">✓</div>
                   </div>
@@ -320,13 +355,21 @@ export default function MemberWizard({
             </div>
 
             {memberForm.ktpFile && (
-              <div className="flex items-center gap-4 bg-alita-gray-50 border border-alita-gray-100 p-4 rounded-xl">
-                <div className="w-10 h-10 bg-alita-white rounded flex items-center justify-center text-lg border border-alita-gray-200 shadow-sm">📄</div>
-                <div className="flex-1 overflow-hidden">
-                  <div className="text-[11px] font-black text-alita-black truncate uppercase">{memberForm.ktpFile.name}</div>
-                  <div className="text-[9px] font-bold text-alita-gray-400 tracking-wider">FILE KTP TERUNGGAH</div>
+              <div className="border border-alita-gray-200 rounded-2xl overflow-hidden bg-alita-gray-50">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-alita-gray-100">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-alita-gray-400">📎 File KTP Terunggah</span>
+                  <span className="text-[9px] font-bold text-alita-gray-300 truncate max-w-50">{memberForm.ktpFile.name}</span>
                 </div>
-                <button type="button" onClick={() => setMemberStep(1)} className="text-[10px] font-black text-alita-orange hover:brightness-90 uppercase">Ganti File</button>
+                {ktpPreview && (
+                  <div className="p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ktpPreview}
+                      alt="Thumbnail KTP"
+                      className="w-full aspect-[1.58/1] object-contain rounded-xl border border-alita-gray-100 bg-alita-white shadow-sm"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

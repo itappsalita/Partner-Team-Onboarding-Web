@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Modal from "../../../components/Modal";
 
@@ -14,12 +14,30 @@ const PROVINSI_INDONESIA = [
   "Maluku", "Maluku Utara", "Papua Barat", "Papua", "Papua Tengah", "Papua Pegunungan", "Papua Selatan", "Papua Barat Daya"
 ];
 
+const SORTED_PROVINSI_INDONESIA = [...PROVINSI_INDONESIA].sort((a, b) => a.localeCompare(b, "id"));
+
+interface PartnerRequest {
+  id: string;
+  displayId: string;
+  sowPekerjaan: string;
+  deskripsi: string;
+  provinsi: string;
+  area: string;
+  siteId?: string;
+  jumlahKebutuhan: number;
+  totalRegisteredTeams: number;
+  pmo?: { name: string };
+  status: string;
+  dueDate?: string;
+  createdAt: string;
+}
+
 export default function RequestsPage() {
   const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role;
+  const userRole = (session?.user as { role?: string })?.role;
   const isPmo = userRole === "PMO_OPS" || userRole === "SUPERADMIN";
 
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<PartnerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -32,14 +50,29 @@ export default function RequestsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [sowDropdownOpen, setSowDropdownOpen] = useState(false);
+  const sowDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sowDropdownRef.current && !sowDropdownRef.current.contains(e.target as Node)) {
+        setSowDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Form states
   const [formData, setFormData] = useState({
-    sowPekerjaan: "",
+    deskripsi: "",
+    sowPekerjaan: [] as string[],
     provinsi: "",
     area: "",
     jumlahKebutuhan: "",
     membersPerTeam: "3", // Default to 3
-    siteId: ""
+    siteId: "",
+    dueDate: ""
   });
 
   const fetchRequests = async () => {
@@ -67,24 +100,43 @@ export default function RequestsPage() {
     setCurrentPage(1);
   }, [searchSow, searchPmo, filterProvinsi, activeTab]);
 
+  const handleCancel = async (id: string, displayId: string) => {
+    if (!confirm(`Yakin ingin membatalkan request ${displayId}? Tindakan ini tidak dapat diurungkan.`)) return;
+    try {
+      const res = await fetch(`/api/requests/${id}/cancel`, { method: "POST" });
+      if (res.ok) {
+        fetchRequests();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Gagal membatalkan request.");
+      }
+    } catch {
+      alert("Terjadi kesalahan sistem.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.sowPekerjaan.length === 0) {
+      alert("Pilih minimal satu SOW Pekerjaan.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, sowPekerjaan: formData.sowPekerjaan.join(", ") })
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ sowPekerjaan: "", provinsi: "", area: "", jumlahKebutuhan: "", membersPerTeam: "3", siteId: "" });
+        setFormData({deskripsi: "", sowPekerjaan: [], provinsi: "", area: "", jumlahKebutuhan: "", membersPerTeam: "3", siteId: "", dueDate: "" });
         fetchRequests();
       } else {
         const error = await res.json();
         alert(error.error || "Gagal membuat request");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
@@ -98,6 +150,7 @@ export default function RequestsPage() {
       case "ON_TRAINING": return "bg-purple-50 text-purple-700 border-purple-100";
       case "TRAINED": return "bg-green-50 text-green-700 border-green-100";
       case "COMPLETED": return "bg-alita-black text-alita-white border-alita-black shadow-sm";
+      case "CANCELED": return "bg-red-50 text-red-500 border-red-100";
       default: return "bg-alita-gray-100 text-alita-gray-600 border-alita-gray-200";
     }
   };
@@ -109,6 +162,7 @@ export default function RequestsPage() {
       case "ON_TRAINING": return "Validated & On Training";
       case "TRAINED": return "Verified & Trained";
       case "COMPLETED": return "Certified & Completed";
+      case "CANCELED": return "Canceled";
       default: return status;
     }
   };
@@ -211,13 +265,13 @@ export default function RequestsPage() {
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-alita-gray-300 group-focus-within:text-alita-orange transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
           <div className="relative group">
-            <select 
+            <select
               className="w-full pl-10 pr-4 py-3 bg-alita-white border border-alita-gray-100 rounded-xl text-xs font-bold focus:outline-none focus:border-alita-orange focus:ring-4 focus:ring-alita-orange-glow transition-all shadow-sm appearance-none"
               value={filterProvinsi}
               onChange={(e) => setFilterProvinsi(e.target.value)}
             >
               <option value="">Semua Provinsi</option>
-              {PROVINSI_INDONESIA.map(p => <option key={p} value={p}>{p}</option>)}
+              {SORTED_PROVINSI_INDONESIA.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-alita-gray-300 group-focus-within:text-alita-orange transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
@@ -239,17 +293,20 @@ export default function RequestsPage() {
 
       <div className="bg-alita-white rounded-2xl shadow-sm border border-alita-gray-100 overflow-hidden flex flex-col">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-380px)]">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-330 text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-alita-gray-50">
               <tr className="border-b border-alita-gray-100">
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Nomor</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">SOW Pekerjaan</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Deskripsi</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Lokasi</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 text-center">Quota</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 text-center">Fulfillment</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">PMO Name</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Tanggal</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Due Date</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Created At</th>
+                {isPmo && <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-alita-gray-50">
@@ -258,16 +315,19 @@ export default function RequestsPage() {
                   <tr key={i}>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-8" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-40" /></td>
+                    <td className="px-6 py-5"><div className="skeleton h-4 w-44" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-28" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-10 mx-auto" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-10 mx-auto" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-24" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-5 w-20 rounded-full" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-20" /></td>
+                    <td className="px-6 py-5"><div className="skeleton h-4 w-20" /></td>
+                    {isPmo && <td className="px-6 py-5" />}
                   </tr>
                 ))
               ) : currentItems.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-16 text-center">
+                <tr><td colSpan={isPmo ? 11 : 10} className="px-6 py-16 text-center">
                   <svg className="w-12 h-12 text-alita-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <div className="text-sm font-bold text-alita-gray-400">Tidak ada data request</div>
                   <div className="text-xs text-alita-gray-300 mt-1">Coba ubah filter atau buat request baru</div>
@@ -278,10 +338,18 @@ export default function RequestsPage() {
                     <td className="px-6 py-5 text-sm font-bold text-alita-gray-400 leading-none">#{req.displayId}</td>
                     <td className="px-6 py-5">
                       <div 
-                        className="text-sm font-bold text-alita-black tracking-tight max-w-[200px] truncate" 
+                        className="text-sm font-bold text-alita-black tracking-tight max-w-50 truncate" 
                         title={req.sowPekerjaan}
                       >
                         {req.sowPekerjaan}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div
+                        className="text-sm font-bold text-alita-gray-600 tracking-tight max-w-60 truncate"
+                        title={req.deskripsi}
+                      >
+                        {req.deskripsi || "-"}
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -310,9 +378,26 @@ export default function RequestsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="text-[10px] font-bold text-alita-gray-401 whitespace-nowrap">
+                        {mounted && req.dueDate ? new Date(req.dueDate).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="text-[10px] font-bold text-alita-gray-401 whitespace-nowrap">
                         {mounted ? new Date(req.createdAt).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : ""}
                       </div>
                     </td>
+                    {isPmo && (
+                      <td className="px-6 py-5">
+                        {req.status === "REQUESTED" && (
+                          <button
+                            onClick={() => handleCancel(req.id, req.displayId)}
+                            className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 hover:text-red-600 transition-all whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -339,7 +424,7 @@ export default function RequestsPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'
@@ -367,14 +452,56 @@ export default function RequestsPage() {
         title="Create New Partner Request"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" ref={sowDropdownRef}>
             <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">SOW Pekerjaan</label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSowDropdownOpen((o) => !o)}
+                className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold text-left flex items-center justify-between focus:outline-none focus:border-alita-orange focus:ring-4 focus:ring-alita-orange-glow transition-all"
+              >
+                <span className={formData.sowPekerjaan.length === 0 ? "text-alita-gray-400" : "text-alita-black"}>
+                  {formData.sowPekerjaan.length === 0
+                    ? "Pilih SOW Pekerjaan"
+                    : formData.sowPekerjaan.join(", ")}
+                </span>
+                <svg className={`w-4 h-4 text-alita-gray-400 transition-transform ${sowDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {sowDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-alita-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  {["Dismantle", "Newlink", "Reroute", "Swap upgrade", "Rewiring"].map((sow) => {
+                    const selected = formData.sowPekerjaan.includes(sow);
+                    return (
+                      <button
+                        key={sow}
+                        type="button"
+                        onClick={() => {
+                          const updated = selected
+                            ? formData.sowPekerjaan.filter((v) => v !== sow)
+                            : [...formData.sowPekerjaan, sow];
+                          setFormData({ ...formData, sowPekerjaan: updated });
+                        }}
+                        className={`w-full px-4 py-2.5 text-sm font-bold text-left flex items-center gap-3 transition-colors ${selected ? "bg-orange-50 text-alita-orange" : "text-alita-gray-700 hover:bg-alita-gray-50"}`}
+                      >
+                        <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${selected ? "bg-alita-orange border-alita-orange" : "border-alita-gray-300"}`}>
+                          {selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </span>
+                        {sow}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Deskripsi</label>
             <textarea 
               className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all" 
               rows={3}
               placeholder="Jelaskan ruang lingkup pekerjaan..."
-              value={formData.sowPekerjaan}
-              onChange={(e) => setFormData({...formData, sowPekerjaan: e.target.value})}
+              value={formData.deskripsi}
+              onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
               required
             />
           </div>
@@ -389,7 +516,7 @@ export default function RequestsPage() {
                 required
               >
                 <option value="">Pilih Provinsi</option>
-                {PROVINSI_INDONESIA.map(p => <option key={p} value={p}>{p}</option>)}
+                {SORTED_PROVINSI_INDONESIA.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -433,20 +560,30 @@ export default function RequestsPage() {
               <p className="text-[10px] font-medium text-alita-gray-400 mt-0.5 italic">* Jumlah personil per 1 tim.</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Site ID (Opsional)</label>
-              <input 
-                type="text" 
+              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Project ID (Opsional)</label>
+              <input
+                type="text"
                 className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
-                placeholder="ID Project / Site"
+                placeholder="Masukkan Project ID"
                 value={formData.siteId}
                 onChange={(e) => setFormData({...formData, siteId: e.target.value})}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Due Date</label>
+              <input
+                type="date"
+                className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                required
               />
             </div>
           </div>
 
           <button 
             type="submit" 
-            className="w-full mt-4 py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+            className="w-full mt-4 py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? "Memproses..." : "Submit New Request"}

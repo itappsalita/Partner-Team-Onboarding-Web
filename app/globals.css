@@ -163,3 +163,8 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+@keyframes progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}

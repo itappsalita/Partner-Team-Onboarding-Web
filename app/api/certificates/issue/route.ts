@@ -107,7 +107,8 @@ export async function PUT(req: Request) {
         alitaExtEmail,
         alitaEmailPassword,
         certificateNumber: certNumber,
-        certificateFilePath: relativePath
+        certificateFilePath: relativePath,
+        ...(!memberData.certificateFilePath ? { certificateDate: new Date() } : {})
       })
       .where(eq(teamMembers.id, memberId));
 

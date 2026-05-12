@@ -7,12 +7,13 @@ import { createNotification, notifyUsersByRole } from "@/lib/notifications";
 
 export async function PUT(req: Request) {
   try {
-    const { 
-      teamId, 
-      attendedMemberIds, 
-      result, 
-      whatsappGroupJustification, 
-      evaluationNotes 
+    const {
+      teamId,
+      attendedMemberIds,
+      memberScores,
+      result,
+      whatsappGroupJustification,
+      evaluationNotes
     } = await req.json();
 
     if (!teamId) {
@@ -32,6 +33,18 @@ export async function PUT(req: Request) {
         await tx.update(teamMembers)
           .set({ isAttendedTraining: 1 })
           .where(inArray(teamMembers.id, attendedMemberIds));
+      }
+
+      // Save score per member
+      if (memberScores && typeof memberScores === 'object') {
+        for (const [memberId, score] of Object.entries(memberScores)) {
+          const scoreValue = score !== null && score !== undefined && String(score) !== ''
+            ? parseInt(String(score))
+            : null;
+          await tx.update(teamMembers)
+            .set({ score: scoreValue })
+            .where(eq(teamMembers.id, memberId));
+        }
       }
 
       // b. Update Training Process result

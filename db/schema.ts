@@ -1,4 +1,4 @@
-import { mysqlTable, int, varchar, timestamp, text, mysqlEnum, foreignKey, binary, customType } from 'drizzle-orm/mysql-core';
+import { mysqlTable, int, varchar, timestamp, text, mysqlEnum } from 'drizzle-orm/mysql-core';
 import { relations } from 'drizzle-orm';
 
 /**
@@ -9,7 +9,7 @@ const uuidVarchar = (name: string) => varchar(name, { length: 36 });
 
 // --- ENUMS ---
 export const roleEnum = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_CULTURE'] as const;
-export const requestStatusEnum = ['REQUESTED', 'SOURCING', 'ON_TRAINING', 'TRAINED', 'COMPLETED'] as const;
+export const requestStatusEnum = ['REQUESTED', 'SOURCING', 'ON_TRAINING', 'TRAINED', 'COMPLETED', 'CANCELED'] as const;
 export const trainingResultEnum = ['PENDING', 'LULUS', 'TIDAK_LULUS'] as const;
 
 // --- TABLES ---
@@ -47,6 +47,8 @@ export const requestForPartners = mysqlTable('request_for_partners', {
   siteId: varchar('site_id', { length: 100 }),
   membersPerTeam: int('members_per_team').default(0).notNull(),
   status: mysqlEnum('status', requestStatusEnum).default('REQUESTED').notNull(),
+  deskripsi: text('deskripsi').notNull(),
+  dueDate: timestamp('due_date').defaultNow(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -106,6 +108,8 @@ export const teamMembers = mysqlTable('team_members', {
   position: varchar('position', { length: 100 }).notNull(),
   nik: varchar('nik', { length: 50 }).notNull(),
   phone: varchar('phone', { length: 30 }).notNull(),
+  emergencyContactName: varchar('emergency_contact_name', { length: 150 }),
+  emergencyContactPhone: varchar('emergency_contact_phone', { length: 30 }),
   ktpFilePath: varchar('ktp_file_path', { length: 255 }).notNull(),
   selfieFilePath: varchar('selfie_file_path', { length: 255 }),
   certificateFilePath: varchar('certificate_file_path', { length: 255 }),
@@ -113,8 +117,10 @@ export const teamMembers = mysqlTable('team_members', {
   alitaExtEmail: varchar('alita_ext_email', { length: 150 }),
   alitaEmailPassword: varchar('alita_email_password', { length: 255 }),
   isAttendedTraining: int('is_attended_training').default(0).notNull(),
+  score: int('score'),
   isReturning: int('is_returning').default(0).notNull(),
   isActive: int('is_active').default(1).notNull(),
+  certificateDate: timestamp('certificate_date'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

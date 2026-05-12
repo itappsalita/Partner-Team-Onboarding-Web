@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1776756672042,
+      "tag": "0000_melted_doctor_octopus",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1777454627179,
+      "tag": "0001_woozy_wild_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778234504715,
+      "tag": "0002_legal_liz_osborn",
+      "breakpoints": true
+    }
+  ]
+}

@@ -114,6 +114,8 @@ export async function POST(req: Request) {
     const phone = formData.get("phone") as string;
     const ktpFile = formData.get("ktpFile") as File | null;
     const selfieFile = formData.get("selfieFile") as File | null;
+    const emergencyContactName = formData.get("emergencyContactName") as string | null;
+    const emergencyContactPhone = formData.get("emergencyContactPhone") as string | null;
 
     if (!teamId || !name || !nik || !ktpFile || !selfieFile) {
       return NextResponse.json({ error: "Missing required fields (Name, NIK, KTP Photo, and Selfie Photo are mandatory)" }, { status: 400 });
@@ -171,12 +173,14 @@ export async function POST(req: Request) {
     const insertData: any = {
       teamId,
       memberNumber,
-      name, // NIK and Name should stay consistent as per user request
+      name,
       position,
       nik,
-      phone, // Updateable Phone
-      ktpFilePath, // Updateable KTP
-      selfieFilePath, // Updateable Selfie
+      phone,
+      emergencyContactName: emergencyContactName || null,
+      emergencyContactPhone: emergencyContactPhone || null,
+      ktpFilePath,
+      selfieFilePath,
     };
 
     if (oldMember && oldMember.certificateFilePath) {

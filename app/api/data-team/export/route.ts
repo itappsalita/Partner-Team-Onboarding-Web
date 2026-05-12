@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../db";
-import { dataTeamPartners, teamMembers, teams, requestForPartners } from "../../../../db/schema";
+import { dataTeamPartners, teamMembers } from "../../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import ExcelJS from "exceljs";
-import path from "path";
-import fs from "fs";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -20,8 +18,9 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const assignmentId = searchParams.get("id");
+    const teamId = searchParams.get("teamId");
 
-    // Fetch assignments with deep relations, filter by ID if provided
+    // Fetch assignments with deep relations
     const assignments = await db.query.dataTeamPartners.findMany({
       where: assignmentId ? eq(dataTeamPartners.id, assignmentId) : undefined,
       with: {
@@ -30,7 +29,7 @@ export async function GET(req: Request) {
         teams: {
           with: {
             members: {
-              where: eq(teamMembers.isActive, 1) // Only active members
+              where: eq(teamMembers.isActive, 1)
             },
             trainingProcess: true
           }
@@ -39,24 +38,39 @@ export async function GET(req: Request) {
       orderBy: (dt, { desc }) => [desc(dt.createdAt)]
     });
 
+    const formatDate = (date: Date | string | null | undefined): string =>
+      date ? new Date(date).toLocaleDateString("id-ID") : "-";
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Data Team Personnel");
 
     // Define Columns
     worksheet.columns = [
-      { header: "No Tim", key: "teamNo", width: 20 },
+      { header: "No Tim", key: "teamNo", width: 18 },
       { header: "Status Tim", key: "teamStatus", width: 15 },
-      { header: "SOW", key: "sow", width: 40 },
+      { header: "SOW", key: "sow", width: 35 },
       { header: "Nama Anggota", key: "memberName", width: 25 },
-      { header: "Perusahaan", key: "company", width: 30 },
-      { header: "Posisi Anggota", key: "memberPosition", width: 20 },
+      { header: "Perusahaan", key: "company", width: 28 },
+      { header: "Posisi Anggota", key: "memberPosition", width: 18 },
       { header: "No KTP", key: "nik", width: 20 },
-      { header: "Foto KTP", key: "ktpPhoto", width: 25 },
-      { header: "Foto Selfie", key: "selfiePhoto", width: 25 },
-      { header: "No Handphone Anggota", key: "memberPhone", width: 20 },
-      { header: "File TKPK 1", key: "tkpkFile", width: 15 },
+      { header: "No Handphone Anggota", key: "memberPhone", width: 22 },
+      { header: "Emergency contact phone", key: "emergencyPhone", width: 24 },
+      { header: "Emergency contact name", key: "emergencyName", width: 24 },
+      { header: "Alamat email", key: "email", width: 28 },
       { header: "Provinsi", key: "provinsi", width: 20 },
-      { header: "Area", key: "area", width: 20 },
+      { header: "Status Training", key: "trainingStatus", width: 16 },
+      { header: "Nilai Training", key: "trainingScore", width: 14 },
+      { header: "TKPK No", key: "tkpkNo", width: 20 },
+      { header: "First Aid certificate No", key: "firstAidNo", width: 24 },
+      { header: "Electrical certificate No", key: "electricalNo", width: 24 },
+      { header: "Training Certificate No", key: "certNo", width: 24 },
+      { header: "Email ext", key: "emailExt", width: 28 },
+      { header: "Request Date", key: "requestDate", width: 16 },
+      { header: "Due Date", key: "dueDate", width: 16 },
+      { header: "Assigned Team Date", key: "assignedDate", width: 20 },
+      { header: "Data Team Completed Date", key: "completedDate", width: 24 },
+      { header: "Training Date", key: "trainingDate", width: 16 },
+      { header: "Certificate date created", key: "certificateDate", width: 24 },
     ];
 
     // Style Header
@@ -69,11 +83,12 @@ export async function GET(req: Request) {
       if (!assignment.teams) continue;
 
       for (const team of assignment.teams) {
+        if (teamId && team.id !== teamId) continue;
         if (!team.members || team.members.length === 0) continue;
 
         for (const member of team.members) {
           const row = worksheet.getRow(currentRow);
-          row.height = 100; // Large height for images
+          row.height = 20;
           row.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
 
           row.getCell("teamNo").value = team.displayId || `#TM-${team.teamNumber}`;
@@ -84,68 +99,23 @@ export async function GET(req: Request) {
           row.getCell("memberPosition").value = member.position || "-";
           row.getCell("nik").value = member.nik || "-";
           row.getCell("memberPhone").value = member.phone || "-";
+          row.getCell("emergencyPhone").value = member.emergencyContactPhone || "-";
+          row.getCell("emergencyName").value = member.emergencyContactName || "-";
+          row.getCell("email").value = member.alitaExtEmail || "-";
           row.getCell("provinsi").value = assignment.request?.provinsi || "-";
-          row.getCell("area").value = assignment.request?.area || "-";
-
-          // Handle Hyperlink for TKPK 1
-          if (team.tkpk1FilePath) {
-            row.getCell("tkpkFile").value = {
-              text: "Klik Disini",
-              hyperlink: `${process.env.NEXTAUTH_URL || ''}${team.tkpk1FilePath}`,
-              tooltip: "Buka File TKPK 1"
-            };
-            row.getCell("tkpkFile").font = { color: { argb: 'FF0000FF' }, underline: true };
-          } else {
-            row.getCell("tkpkFile").value = "-";
-          }
-
-          // Embedded Images (KTP)
-          if (member.ktpFilePath) {
-            const fullPath = path.join(process.cwd(), "public", member.ktpFilePath);
-            if (fs.existsSync(fullPath)) {
-              try {
-                const imageId = workbook.addImage({
-                  buffer: fs.readFileSync(fullPath) as any,
-                  extension: path.extname(fullPath).slice(1) as any,
-                });
-                worksheet.addImage(imageId, {
-                  tl: { col: 7, row: currentRow - 1 },
-                  ext: { width: 150, height: 120 },
-                  editAs: 'oneCell'
-                });
-              } catch (e) {
-                row.getCell("ktpPhoto").value = "Error Image";
-              }
-            } else {
-              row.getCell("ktpPhoto").value = "File Not Found";
-            }
-          } else {
-            row.getCell("ktpPhoto").value = "-";
-          }
-
-          // Embedded Images (Selfie)
-          if (member.selfieFilePath) {
-            const fullPath = path.join(process.cwd(), "public", member.selfieFilePath);
-            if (fs.existsSync(fullPath)) {
-              try {
-                const imageId = workbook.addImage({
-                  buffer: fs.readFileSync(fullPath) as any,
-                  extension: path.extname(fullPath).slice(1) as any,
-                });
-                worksheet.addImage(imageId, {
-                  tl: { col: 8, row: currentRow - 1 },
-                  ext: { width: 150, height: 120 },
-                  editAs: 'oneCell'
-                });
-              } catch (e) {
-                row.getCell("selfiePhoto").value = "Error Image";
-              }
-            } else {
-              row.getCell("selfiePhoto").value = "File Not Found";
-            }
-          } else {
-            row.getCell("selfiePhoto").value = "-";
-          }
+          row.getCell("trainingStatus").value = member.isAttendedTraining === 1 ? "LULUS" : "BELUM";
+          row.getCell("trainingScore").value = member.score ?? "-";
+          row.getCell("tkpkNo").value = team.tkpk1Number || "-";
+          row.getCell("firstAidNo").value = team.firstAidNumber || "-";
+          row.getCell("electricalNo").value = team.electricalNumber || "-";
+          row.getCell("certNo").value = member.certificateNumber ?? "-";
+          row.getCell("emailExt").value = member.alitaExtEmail || "-";
+          row.getCell("requestDate").value = formatDate(assignment.request?.createdAt);
+          row.getCell("dueDate").value = formatDate(assignment.request?.dueDate);
+          row.getCell("assignedDate").value = formatDate(assignment.createdAt);
+          row.getCell("completedDate").value = formatDate(team.trainingProcess?.createdAt);
+          row.getCell("trainingDate").value = formatDate(team.trainingProcess?.trainingDate);
+          row.getCell("certificateDate").value = formatDate(member.certificateDate);
 
           currentRow++;
         }
@@ -159,7 +129,7 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": 'attachment; filename="Expert_Data_Team_Personnel_New.xlsx"',
+        "Content-Disposition": 'attachment; filename="Expert_Data_Team_Personnel.xlsx"',
       },
     });
 
