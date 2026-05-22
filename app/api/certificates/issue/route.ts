@@ -2,12 +2,24 @@ import { NextResponse } from "next/server";
 // Forced refresh to clear stale Next.js cache
 import { db } from "@/db";
 import { teamMembers, teams, dataTeamPartners } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
 import { createNotification } from "@/lib/notifications";
 import path from "path";
 import fs from "fs-extra";
-import { generateCertificatePdf } from "./certUtils";
+import { generateCertificatePdf, getRomanMonth } from "./certUtils";
+
+const CERTIFICATE_SEQUENCE_START = 300;
+
+function formatCertificateNumber(sequence: number, date: Date) {
+  const monthRoman = getRomanMonth(date.getMonth() + 1);
+  const year = date.getFullYear();
+  return `${sequence}-SERT/ADM-APM/PC/${monthRoman}/${year}`;
+}
+
+function formatCertificateRelativePath(certificateNumber: string) {
+  return `/uploads/certificates/${certificateNumber.replace(/\//g, "-")}.pdf`;
+}
 
 /**
  * @swagger
@@ -71,9 +83,18 @@ export async function PUT(req: Request) {
 
     if (!memberData.certificateFilePath) {
       // Generate Certificate Number
-      const year = new Date().getFullYear();
-      fullCertNo = `ALT/CERT/${year}/${(memberData.seqNumber || 0).toString().padStart(4, '0')}`;
-      certNumber = memberData.seqNumber || 0;
+      const issuedAt = new Date();
+      const [lastCertificate] = await db
+        .select({
+          maxCertificateNumber: sql<number>`max(${teamMembers.certificateNumber})`,
+        })
+        .from(teamMembers);
+      const lastSequence = Math.max(
+        Number(lastCertificate?.maxCertificateNumber || 0),
+        CERTIFICATE_SEQUENCE_START
+      );
+      certNumber = lastSequence + 1;
+      fullCertNo = formatCertificateNumber(certNumber, issuedAt);
 
       // Prepare PDF Data
       const certInputData = {
@@ -84,21 +105,37 @@ export async function PUT(req: Request) {
         Date_Training: memberData.team?.trainingProcess?.trainingDate 
           ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID")
           : "-",
-        Tanggal_Sertifikat: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+        Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
       };
 
       // Generate & Save PDF
       const pdfBuffer = await generateCertificatePdf(certInputData);
-      const fileName = `${memberData.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-      relativePath = `/uploads/certificates/${fileName}`;
-      const absolutePath = path.join(process.cwd(), "public", "uploads", "certificates", fileName);
+      relativePath = formatCertificateRelativePath(fullCertNo);
+      const absolutePath = path.join(process.cwd(), "public", relativePath.replace(/^\/+/, ""));
 
       await fs.ensureDir(path.dirname(absolutePath));
       await fs.writeFile(absolutePath, pdfBuffer);
     } else {
       // For existing certificates, keep the number for the response display
-      const year = new Date().getFullYear(); // Fallback to current year for display if needed
-      fullCertNo = `ALT/CERT/${year}/${(certNumber || 0).toString().padStart(4, '0')}`;
+      const issuedAt = memberData.certificateDate ? new Date(memberData.certificateDate) : new Date();
+      fullCertNo = formatCertificateNumber(certNumber || 0, issuedAt);
+
+      if (relativePath && certNumber) {
+        const nextRelativePath = formatCertificateRelativePath(fullCertNo);
+
+        if (relativePath !== nextRelativePath) {
+          const currentAbsolutePath = path.join(process.cwd(), "public", relativePath.replace(/^\/+/, ""));
+          const nextAbsolutePath = path.join(process.cwd(), "public", nextRelativePath.replace(/^\/+/, ""));
+
+          if (await fs.pathExists(currentAbsolutePath)) {
+            await fs.ensureDir(path.dirname(nextAbsolutePath));
+            if (!(await fs.pathExists(nextAbsolutePath))) {
+              await fs.move(currentAbsolutePath, nextAbsolutePath);
+            }
+            relativePath = nextRelativePath;
+          }
+        }
+      }
     }
 
     // 5. Update Member Record

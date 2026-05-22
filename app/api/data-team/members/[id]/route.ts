@@ -89,7 +89,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
  * /api/data-team/members/{id}:
  *   put:
  *     summary: Update member personnel info
- *     description: Updates position and selfie photo. Restricted to teams in SOURCING status. Changes to 'Leader' position will sync with the Teams table.
+ *     description: Updates position, phone number, and selfie photo. Restricted to teams in SOURCING status. Changes to 'Leader' position or leader phone will sync with the Teams table.
  *     tags: [Members]
  *     parameters:
  *       - in: path
@@ -104,6 +104,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
  *             type: object
  *             properties:
  *               position:
+ *                 type: string
+ *               phone:
  *                 type: string
  *               selfieFile:
  *                 type: string
@@ -126,6 +128,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const formData = await req.formData();
     const position = formData.get("position") as string;
+    const phone = ((formData.get("phone") as string) || "").replace(/\D/g, "");
     const selfieFile = formData.get("selfieFile") as File | null;
 
     // 1. Fetch member and check team status
@@ -160,16 +163,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         await tx.update(teamMembers)
             .set({ 
                 position: position || member.position,
+                phone: phone || member.phone,
                 selfieFilePath: selfieFilePath
             })
             .where(eq(teamMembers.id, memberId));
 
-        // b. Leader Sync if position changed
+        // b. Leader Sync if position or leader phone changed
         if (position && position !== member.position) {
             if (position === "Leader") {
                 // Member becomes leader
                 await tx.update(teams)
-                    .set({ leaderName: member.name, leaderPhone: member.phone })
+                    .set({ leaderName: member.name, leaderPhone: phone || member.phone })
                     .where(eq(teams.id, member.teamId));
             } else if (member.position === "Leader") {
                 // Member was leader, now is not
@@ -177,6 +181,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     .set({ leaderName: "", leaderPhone: "" })
                     .where(eq(teams.id, member.teamId));
             }
+        } else if (member.position === "Leader" && phone && phone !== member.phone) {
+            await tx.update(teams)
+                .set({ leaderPhone: phone })
+                .where(eq(teams.id, member.teamId));
         }
     });
 
