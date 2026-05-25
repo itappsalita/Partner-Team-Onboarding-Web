@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs-extra";
 import { generateCertificatePdf, getRomanMonth } from "./certUtils";
 
-const CERTIFICATE_SEQUENCE_START = 300;
+const CERTIFICATE_SEQUENCE_START = 301;
 
 function formatCertificateNumber(sequence: number, date: Date) {
   const monthRoman = getRomanMonth(date.getMonth() + 1);
