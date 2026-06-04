@@ -43,6 +43,11 @@ const icons: Record<string, React.ReactNode> = {
       <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
     </svg>
   ),
+  projectId: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>
+    </svg>
+  ),
 };
 
 const menuItems = [
@@ -52,6 +57,7 @@ const menuItems = [
   { name: "QA Training", href: "/qa-training", iconKey: "qaTraining" },
   { name: "Publish Certificate", href: "/certificates", iconKey: "certificates" },
   { name: "Database Anggota", href: "/members", iconKey: "members" },
+  { name: "Project ID", href: "/project-ids", iconKey: "projectId" },
   { name: "User Settings", href: "/users", iconKey: "users" },
 ];
 
@@ -62,6 +68,7 @@ const roleAccess: Record<string, string[]> = {
   "QA Training": ["SUPERADMIN", "QA"],
   "Publish Certificate": ["SUPERADMIN", "PEOPLE_CULTURE"],
   "Database Anggota": ["SUPERADMIN", "PMO_OPS", "PROCUREMENT", "QA", "PEOPLE_CULTURE"],
+  "Project ID": ["SUPERADMIN", "PMO_OPS"],
   "User Settings": ["SUPERADMIN"],
 };
 

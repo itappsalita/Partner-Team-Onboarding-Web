@@ -50,6 +50,8 @@ export default function RequestsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [projectIdOptions, setProjectIdOptions] = useState<{ id: number; projectId: string; projectName: string }[]>([]);
+
   const [sowDropdownOpen, setSowDropdownOpen] = useState(false);
   const sowDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +96,15 @@ export default function RequestsPage() {
     setMounted(true);
     fetchRequests();
   }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      fetch("/api/project-ids")
+        .then((r) => r.json())
+        .then((d) => { if (Array.isArray(d.data)) setProjectIdOptions(d.data); })
+        .catch(() => {});
+    }
+  }, [isModalOpen]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -204,7 +215,7 @@ export default function RequestsPage() {
         {isPmo && (
           <button 
             className="bg-alita-black text-alita-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-alita-gray-800 active:scale-95 transition-all whitespace-nowrap" 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { setFormData({deskripsi: "", sowPekerjaan: [], provinsi: "", area: "", jumlahKebutuhan: "", membersPerTeam: "3", siteId: "", dueDate: ""}); setIsModalOpen(true); }}
           >
             + Create New Request
           </button>
@@ -300,6 +311,7 @@ export default function RequestsPage() {
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">SOW Pekerjaan</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Deskripsi</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Lokasi</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Project ID</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 text-center">Quota</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400 text-center">Fulfillment</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">PMO Name</th>
@@ -317,6 +329,7 @@ export default function RequestsPage() {
                     <td className="px-6 py-5"><div className="skeleton h-4 w-40" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-44" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-28" /></td>
+                    <td className="px-6 py-5"><div className="skeleton h-4 w-20" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-10 mx-auto" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-10 mx-auto" /></td>
                     <td className="px-6 py-5"><div className="skeleton h-4 w-24" /></td>
@@ -327,7 +340,7 @@ export default function RequestsPage() {
                   </tr>
                 ))
               ) : currentItems.length === 0 ? (
-                <tr><td colSpan={isPmo ? 11 : 10} className="px-6 py-16 text-center">
+                <tr><td colSpan={isPmo ? 12 : 11} className="px-6 py-16 text-center">
                   <svg className="w-12 h-12 text-alita-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <div className="text-sm font-bold text-alita-gray-400">Tidak ada data request</div>
                   <div className="text-xs text-alita-gray-300 mt-1">Coba ubah filter atau buat request baru</div>
@@ -354,9 +367,13 @@ export default function RequestsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="text-sm font-bold text-alita-black leading-none mb-1">{req.provinsi}</div>
-                      <div className="text-[10px] font-black text-alita-gray-400 tracking-wider uppercase">
-                        {req.area} {req.siteId ? `• ${req.siteId}` : ""}
-                      </div>
+                      <div className="text-[10px] font-black text-alita-gray-400 tracking-wider uppercase">{req.area}</div>
+                    </td>
+                    <td className="px-6 py-5">
+                      {req.siteId
+                        ? <span className="px-2.5 py-1 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[10px] font-black text-alita-gray-600 tracking-wider">{req.siteId}</span>
+                        : <span className="text-sm text-alita-gray-300">—</span>
+                      }
                     </td>
                     <td className="px-6 py-5 text-center">
                       <div className="text-lg font-black text-alita-black leading-none">{req.jumlahKebutuhan}</div>
@@ -560,14 +577,26 @@ export default function RequestsPage() {
               <p className="text-[10px] font-medium text-alita-gray-400 mt-0.5 italic">* Jumlah personil per 1 tim.</p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Project ID (Opsional)</label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
-                placeholder="Masukkan Project ID"
-                value={formData.siteId}
-                onChange={(e) => setFormData({...formData, siteId: e.target.value})}
-              />
+              <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Project ID</label>
+              {projectIdOptions.length === 0 ? (
+                <div className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm text-alita-gray-400 font-medium italic">
+                  Belum ada Project ID tersedia
+                </div>
+              ) : (
+                <select
+                  className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
+                  value={formData.siteId}
+                  onChange={(e) => setFormData({...formData, siteId: e.target.value})}
+                  required
+                >
+                  <option value="" disabled>Pilih Project ID</option>
+                  {projectIdOptions.map((p) => (
+                    <option key={p.id} value={p.projectId}>
+                      {p.projectId} — {p.projectName}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Due Date</label>

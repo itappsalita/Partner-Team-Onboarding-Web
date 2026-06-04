@@ -54,8 +54,6 @@ export async function GET(req: Request) {
       { header: "Posisi Anggota", key: "memberPosition", width: 18 },
       { header: "No KTP", key: "nik", width: 20 },
       { header: "No Handphone Anggota", key: "memberPhone", width: 22 },
-      { header: "Emergency contact phone", key: "emergencyPhone", width: 24 },
-      { header: "Emergency contact name", key: "emergencyName", width: 24 },
       { header: "Alamat email", key: "email", width: 28 },
       { header: "Provinsi", key: "provinsi", width: 20 },
       { header: "Status Training", key: "trainingStatus", width: 16 },
@@ -71,6 +69,8 @@ export async function GET(req: Request) {
       { header: "Data Team Completed Date", key: "completedDate", width: 24 },
       { header: "Training Date", key: "trainingDate", width: 16 },
       { header: "Certificate date created", key: "certificateDate", width: 24 },
+      { header: "Emergency contact name", key: "emergencyName", width: 24 },
+      { header: "Emergency contact phone", key: "emergencyPhone", width: 24 },
     ];
 
     // Style Header

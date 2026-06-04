@@ -141,6 +141,19 @@ export const trainingProcesses = mysqlTable('training_processes', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+/**
+ * PROJECT IDs
+ * Master data for project IDs referenced in partner requests.
+ */
+export const projectIds = mysqlTable('project_ids', {
+  id: int('id').autoincrement().primaryKey(),
+  projectId: varchar('project_id', { length: 100 }).notNull().unique(),
+  projectName: varchar('project_name', { length: 255 }).notNull(),
+  isActive: int('is_active').default(1).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
+});
+
 export const passwordResetTokens = mysqlTable('password_reset_tokens', {
   id: uuidVarchar('id').primaryKey(),
   email: varchar('email', { length: 150 }).notNull(),

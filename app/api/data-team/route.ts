@@ -42,7 +42,7 @@ export async function GET(req: Request) {
           columns: { name: true, email: true }
         },
         request: {
-          columns: { sowPekerjaan: true, provinsi: true, area: true, membersPerTeam: true, jumlahKebutuhan: true }
+          columns: { sowPekerjaan: true, provinsi: true, area: true, membersPerTeam: true, jumlahKebutuhan: true, siteId: true }
         },
         teams: {
           with: {
