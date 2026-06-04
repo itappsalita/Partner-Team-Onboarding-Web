@@ -163,8 +163,8 @@ export default function MemberWizard({
       formData.append("position", memberForm.position);
       formData.append("nik", memberForm.nik);
       formData.append("phone", memberForm.phone);
-      if (memberForm.emergencyContactName) formData.append("emergencyContactName", memberForm.emergencyContactName);
-      if (memberForm.emergencyContactPhone) formData.append("emergencyContactPhone", memberForm.emergencyContactPhone);
+      formData.append("emergencyContactName", memberForm.emergencyContactName);
+      formData.append("emergencyContactPhone", memberForm.emergencyContactPhone);
       if (memberForm.ktpFile) formData.append("ktpFile", memberForm.ktpFile);
       if (memberForm.selfieFile) formData.append("selfieFile", memberForm.selfieFile);
 
@@ -306,11 +306,11 @@ export default function MemberWizard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Nama Emergency Contact</label>
-                <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.emergencyContactName} onChange={e => setMemberForm({...memberForm, emergencyContactName: e.target.value})} placeholder="Nama kontak darurat" />
+                <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.emergencyContactName} onChange={e => setMemberForm({...memberForm, emergencyContactName: e.target.value})} placeholder="Nama kontak darurat" required />
               </div>
               <div>
                 <label className="block text-xs font-black text-alita-gray-400 tracking-widest uppercase mb-2">Phone Emergency Contact</label>
-                <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.emergencyContactPhone} onChange={e => setMemberForm({...memberForm, emergencyContactPhone: e.target.value})} placeholder="0812xxxx" />
+                <input type="text" className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors" value={memberForm.emergencyContactPhone} onChange={e => setMemberForm({...memberForm, emergencyContactPhone: e.target.value})} placeholder="0812xxxx" required />
               </div>
             </div>
 

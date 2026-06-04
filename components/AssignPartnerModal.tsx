@@ -24,6 +24,21 @@ export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: Assig
 
   const selectedReq = requests.find(r => r.id.toString() === requestId);
 
+  const MAX_SIZE = 10 * 1024 * 1024;
+  const ALLOWED_TYPES = ["application/pdf", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+
+  const validateFile = (file: File, label: string): boolean => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert(`${label}: hanya file PDF atau Excel (.xls/.xlsx) yang diperbolehkan.`);
+      return false;
+    }
+    if (file.size > MAX_SIZE) {
+      alert(`${label}: ukuran file melebihi batas maksimal 10MB.`);
+      return false;
+    }
+    return true;
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadData();
@@ -171,21 +186,29 @@ export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: Assig
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Upload TOR (Max 50MB)</label>
-            <input 
-              type="file" 
-              className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-alita-gray-100 file:text-alita-gray-700 hover:file:bg-alita-gray-200 italic text-alita-gray-400" 
-              onChange={(e) => setTorFile(e.target.files?.[0] || null)}
-              accept=".pdf,.doc,.docx"
+            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Upload TOR <span className="normal-case font-medium text-alita-gray-400">(PDF / Excel, maks. 10MB)</span></label>
+            <input
+              type="file"
+              className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-alita-gray-100 file:text-alita-gray-700 hover:file:bg-alita-gray-200 italic text-alita-gray-400"
+              accept=".pdf,.xls,.xlsx"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                if (file && !validateFile(file, "TOR")) { e.target.value = ""; return; }
+                setTorFile(file);
+              }}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Upload BAK (Max 50MB)</label>
-            <input 
-              type="file" 
-              className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-alita-gray-100 file:text-alita-gray-700 hover:file:bg-alita-gray-200 italic text-alita-gray-400" 
-              onChange={(e) => setBakFile(e.target.files?.[0] || null)}
-              accept=".pdf,.doc,.docx"
+            <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Upload BAK <span className="normal-case font-medium text-alita-gray-400">(PDF / Excel, maks. 10MB)</span></label>
+            <input
+              type="file"
+              className="w-full text-xs file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-alita-gray-100 file:text-alita-gray-700 hover:file:bg-alita-gray-200 italic text-alita-gray-400"
+              accept=".pdf,.xls,.xlsx"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                if (file && !validateFile(file, "BAK")) { e.target.value = ""; return; }
+                setBakFile(file);
+              }}
             />
           </div>
         </div>

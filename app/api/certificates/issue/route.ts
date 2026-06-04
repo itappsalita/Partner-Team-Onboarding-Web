@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs-extra";
 import { generateCertificatePdf, getRomanMonth } from "./certUtils";
 
-const CERTIFICATE_SEQUENCE_START = 301;
+const CERTIFICATE_SEQUENCE_START = 314;
 
 function formatCertificateNumber(sequence: number, date: Date) {
   const monthRoman = getRomanMonth(date.getMonth() + 1);
@@ -54,7 +54,10 @@ export async function PUT(req: Request) {
     const { memberId, alitaExtEmail, alitaEmailPassword } = await req.json();
 
     if (!memberId || !alitaExtEmail) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     // 1. Fetch Member Data with Relations
@@ -66,15 +69,16 @@ export async function PUT(req: Request) {
             trainingProcess: true,
             dataTeamPartner: {
               with: {
-                request: true
-              }
-            }
-          }
-        }
-      }
+                request: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    if (!memberData) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    if (!memberData)
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
     // 2. Handle Certificate Generation conditionally
     let relativePath = memberData.certificateFilePath;
@@ -91,7 +95,7 @@ export async function PUT(req: Request) {
         .from(teamMembers);
       const lastSequence = Math.max(
         Number(lastCertificate?.maxCertificateNumber || 0),
-        CERTIFICATE_SEQUENCE_START
+        CERTIFICATE_SEQUENCE_START,
       );
       certNumber = lastSequence + 1;
       fullCertNo = formatCertificateNumber(certNumber, issuedAt);
@@ -102,30 +106,52 @@ export async function PUT(req: Request) {
         EMPLOYEE_NAME: memberData.name,
         KTP: memberData.nik,
         OCCUPATION: memberData.position,
-        Date_Training: memberData.team?.trainingProcess?.trainingDate 
-          ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID")
+        Date_Training: memberData.team?.trainingProcess?.trainingDate
+          ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
           : "-",
-        Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+        Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
       };
 
       // Generate & Save PDF
       const pdfBuffer = await generateCertificatePdf(certInputData);
       relativePath = formatCertificateRelativePath(fullCertNo);
-      const absolutePath = path.join(process.cwd(), "public", relativePath.replace(/^\/+/, ""));
+      const absolutePath = path.join(
+        process.cwd(),
+        "public",
+        relativePath.replace(/^\/+/, ""),
+      );
 
       await fs.ensureDir(path.dirname(absolutePath));
       await fs.writeFile(absolutePath, pdfBuffer);
     } else {
       // For existing certificates, keep the number for the response display
-      const issuedAt = memberData.certificateDate ? new Date(memberData.certificateDate) : new Date();
+      const issuedAt = memberData.certificateDate
+        ? new Date(memberData.certificateDate)
+        : new Date();
       fullCertNo = formatCertificateNumber(certNumber || 0, issuedAt);
 
       if (relativePath && certNumber) {
         const nextRelativePath = formatCertificateRelativePath(fullCertNo);
 
         if (relativePath !== nextRelativePath) {
-          const currentAbsolutePath = path.join(process.cwd(), "public", relativePath.replace(/^\/+/, ""));
-          const nextAbsolutePath = path.join(process.cwd(), "public", nextRelativePath.replace(/^\/+/, ""));
+          const currentAbsolutePath = path.join(
+            process.cwd(),
+            "public",
+            relativePath.replace(/^\/+/, ""),
+          );
+          const nextAbsolutePath = path.join(
+            process.cwd(),
+            "public",
+            nextRelativePath.replace(/^\/+/, ""),
+          );
 
           if (await fs.pathExists(currentAbsolutePath)) {
             await fs.ensureDir(path.dirname(nextAbsolutePath));
@@ -139,13 +165,16 @@ export async function PUT(req: Request) {
     }
 
     // 5. Update Member Record
-    await db.update(teamMembers)
+    await db
+      .update(teamMembers)
       .set({
         alitaExtEmail,
         alitaEmailPassword,
         certificateNumber: certNumber,
         certificateFilePath: relativePath,
-        ...(!memberData.certificateFilePath ? { certificateDate: new Date() } : {})
+        ...(!memberData.certificateFilePath
+          ? { certificateDate: new Date() }
+          : {}),
       })
       .where(eq(teamMembers.id, memberId));
 
@@ -156,15 +185,18 @@ export async function PUT(req: Request) {
     if (teamId) {
       // 6a. Check for Team completion
       const allTeamMembers = await db.query.teamMembers.findMany({
-        where: eq(teamMembers.teamId, teamId)
+        where: eq(teamMembers.teamId, teamId),
       });
 
       const totalTeamMembers = allTeamMembers.length;
-      const certifiedTeamMembers = allTeamMembers.filter(m => m.certificateFilePath || m.id === memberId).length;
+      const certifiedTeamMembers = allTeamMembers.filter(
+        (m) => m.certificateFilePath || m.id === memberId,
+      ).length;
 
       if (totalTeamMembers > 0 && totalTeamMembers === certifiedTeamMembers) {
-        await db.update(teams)
-          .set({ status: 'COMPLETED' })
+        await db
+          .update(teams)
+          .set({ status: "COMPLETED" })
           .where(eq(teams.id, teamId));
       }
     }
@@ -175,20 +207,25 @@ export async function PUT(req: Request) {
         const partnerAssignmentId = memberData.team?.dataTeamPartnerId;
         if (partnerAssignmentId) {
           const partnerTeams = await tx.query.teams.findMany({
-            where: eq(teams.dataTeamPartnerId, partnerAssignmentId)
+            where: eq(teams.dataTeamPartnerId, partnerAssignmentId),
           });
-          
-          const allPartnerTeamsCompleted = partnerTeams.every(t => t.status === 'COMPLETED');
-          const anyPartnerTeamOnTraining = partnerTeams.some(t => t.status !== 'SOURCING');
 
-          let newPartnerStatus = 'SOURCING';
+          const allPartnerTeamsCompleted = partnerTeams.every(
+            (t) => t.status === "COMPLETED",
+          );
+          const anyPartnerTeamOnTraining = partnerTeams.some(
+            (t) => t.status !== "SOURCING",
+          );
+
+          let newPartnerStatus = "SOURCING";
           if (allPartnerTeamsCompleted) {
-            newPartnerStatus = 'COMPLETED';
+            newPartnerStatus = "COMPLETED";
           } else if (anyPartnerTeamOnTraining) {
-            newPartnerStatus = 'ON_TRAINING';
+            newPartnerStatus = "ON_TRAINING";
           }
 
-          await tx.update(dataTeamPartners)
+          await tx
+            .update(dataTeamPartners)
             .set({ status: newPartnerStatus })
             .where(eq(dataTeamPartners.id, partnerAssignmentId));
         }
@@ -200,24 +237,27 @@ export async function PUT(req: Request) {
 
     // 7. Notify the Partner
     if (memberData.team?.dataTeamPartner?.partnerId) {
-        await createNotification({
-            userId: memberData.team.dataTeamPartner.partnerId,
-            title: "Sertifikat Diterbitkan",
-            message: `Sertifikat dan akun akses untuk ${memberData.name} telah diterbitkan.`,
-            type: "CERTIFICATE",
-            link: `/data-team?assignmentId=${memberData.team.dataTeamPartnerId}&openModal=true`
-        });
+      await createNotification({
+        userId: memberData.team.dataTeamPartner.partnerId,
+        title: "Sertifikat Diterbitkan",
+        message: `Sertifikat dan akun akses untuk ${memberData.name} telah diterbitkan.`,
+        type: "CERTIFICATE",
+        link: `/data-team?assignmentId=${memberData.team.dataTeamPartnerId}&openModal=true`,
+      });
     }
 
-    return NextResponse.json({ 
-      message: memberData.certificateFilePath 
-        ? "Credentials updated successfully" 
+    return NextResponse.json({
+      message: memberData.certificateFilePath
+        ? "Credentials updated successfully"
         : "Certificate generated & Access issued successfully",
       filePath: relativePath,
-      certNumber: fullCertNo
+      certNumber: fullCertNo,
     });
   } catch (error: any) {
     console.error("Issue certificate error:", error);
-    return NextResponse.json({ error: "Gagal memproses sertifikat: " + error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Gagal memproses sertifikat: " + error.message },
+      { status: 500 },
+    );
   }
 }
