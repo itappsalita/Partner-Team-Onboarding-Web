@@ -42,7 +42,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
   // Member Edit State
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ position: '', phone: '', selfieFile: null as File | null });
+  const [editForm, setEditForm] = useState({ position: '', phone: '', emergencyContactName: '', emergencyContactPhone: '', selfieFile: null as File | null });
   const [exportingTeamId, setExportingTeamId] = useState<string | null>(null);
 
   const handleExportTeam = async (team: any) => {
@@ -101,6 +101,8 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
         const formData = new FormData();
         formData.append("position", editForm.position);
         formData.append("phone", editForm.phone);
+        formData.append("emergencyContactName", editForm.emergencyContactName);
+        formData.append("emergencyContactPhone", editForm.emergencyContactPhone);
         if (editForm.selfieFile) {
             formData.append("selfieFile", editForm.selfieFile);
         }
@@ -502,6 +504,32 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                         placeholder="0812xxxx"
                       />
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Nama Emergency Contact</label>
+                        <input
+                          type="text"
+                          value={editForm.emergencyContactName}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, emergencyContactName: e.target.value }))}
+                          className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors"
+                          placeholder="Nama kontak darurat"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Phone Emergency Contact</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={editForm.emergencyContactPhone}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, emergencyContactPhone: e.target.value.replace(/\D/g, '') }))}
+                          className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:border-alita-orange transition-colors"
+                          placeholder="0812xxxx"
+                          required
+                        />
+                      </div>
+                    </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-2">Pilih Jabatan</label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -689,7 +717,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                                    <button 
                                      onClick={() => {
                                        setEditingMember(m);
-                                       setEditForm({ position: m.position, phone: (m.phone || '').replace(/\D/g, ''), selfieFile: null });
+                                       setEditForm({ position: m.position, phone: (m.phone || '').replace(/\D/g, ''), emergencyContactName: m.emergencyContactName || '', emergencyContactPhone: (m.emergencyContactPhone || '').replace(/\D/g, ''), selfieFile: null });
                                      }}
                                      className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg font-black text-[8px] uppercase tracking-tighter transition-all shadow-sm active:scale-95 bg-alita-black text-alita-white hover:bg-alita-gray-800"
                                    >

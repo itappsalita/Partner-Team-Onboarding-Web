@@ -129,6 +129,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const formData = await req.formData();
     const position = formData.get("position") as string;
     const phone = ((formData.get("phone") as string) || "").replace(/\D/g, "");
+    const emergencyContactName = formData.get("emergencyContactName") as string | null;
+    const emergencyContactPhone = ((formData.get("emergencyContactPhone") as string) || "").replace(/\D/g, "") || null;
     const selfieFile = formData.get("selfieFile") as File | null;
 
     // 1. Fetch member and check team status
@@ -161,9 +163,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await db.transaction(async (tx) => {
         // a. Update member
         await tx.update(teamMembers)
-            .set({ 
+            .set({
                 position: position || member.position,
                 phone: phone || member.phone,
+                emergencyContactName: emergencyContactName ?? member.emergencyContactName,
+                emergencyContactPhone: emergencyContactPhone ?? member.emergencyContactPhone,
                 selfieFilePath: selfieFilePath
             })
             .where(eq(teamMembers.id, memberId));

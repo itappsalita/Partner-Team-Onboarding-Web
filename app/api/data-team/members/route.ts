@@ -120,6 +120,9 @@ export async function POST(req: Request) {
     if (!teamId || !name || !nik || !ktpFile || !selfieFile) {
       return NextResponse.json({ error: "Missing required fields (Name, NIK, KTP Photo, and Selfie Photo are mandatory)" }, { status: 400 });
     }
+    if (!emergencyContactName?.trim() || !emergencyContactPhone?.trim()) {
+      return NextResponse.json({ error: "Emergency contact name dan phone wajib diisi" }, { status: 400 });
+    }
 
     // 1. Quota & Security Check
     const currentTeam = await db.query.teams.findFirst({
@@ -177,8 +180,8 @@ export async function POST(req: Request) {
       position,
       nik,
       phone,
-      emergencyContactName: emergencyContactName || null,
-      emergencyContactPhone: emergencyContactPhone || null,
+      emergencyContactName,
+      emergencyContactPhone,
       ktpFilePath,
       selfieFilePath,
     };
