@@ -8,6 +8,8 @@ const ROLES = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_
 
 export default function UsersPage() {
   const { data: session, update } = useSession();
+  const currentUserRole = (session?.user as { role?: string })?.role;
+  const canEditRoles = currentUserRole === "SUPERADMIN";
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -100,7 +102,7 @@ export default function UsersPage() {
         // If the updated user is the current logged-in user, update the session
         if (modalMode === 'edit' && selectedUser?.id?.toString() === (session?.user as any)?.id?.toString()) {
           console.log("Updating session for current user...");
-          await update({ name: formData.name });
+          await update({ name: formData.name, role: formData.role });
         }
 
         setIsModalOpen(false);
@@ -400,21 +402,21 @@ export default function UsersPage() {
             />
           </div>
 
-          <div className={`flex flex-col gap-1.5 ${modalMode === 'edit' ? 'opacity-70' : ''}`}>
+          <div className={`flex flex-col gap-1.5 ${modalMode === 'edit' && !canEditRoles ? 'opacity-70' : ''}`}>
             <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500 flex items-center gap-2">
               User Role
-              {modalMode === 'edit' && <span className="text-[9px] bg-alita-gray-200 px-1.5 py-0.5 rounded text-alita-gray-500">LOCKED</span>}
+              {modalMode === 'edit' && !canEditRoles && <span className="text-[9px] bg-alita-gray-200 px-1.5 py-0.5 rounded text-alita-gray-500">LOCKED</span>}
             </label>
             <select 
               className={`w-full px-4 py-3 border rounded-xl text-sm font-bold focus:outline-none transition-all shadow-sm ${
-                modalMode === 'edit'
+                modalMode === 'edit' && !canEditRoles
                   ? "bg-alita-gray-100 border-alita-gray-200 text-alita-gray-400 cursor-not-allowed appearance-none"
                   : "bg-alita-gray-50 border-alita-gray-200 text-alita-black focus:border-alita-orange focus:bg-alita-white"
               }`}
               value={formData.role}
               onChange={(e) => setFormData({...formData, role: e.target.value})}
               required
-              disabled={modalMode === 'edit'}
+              disabled={modalMode === 'edit' && !canEditRoles}
             >
               {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
