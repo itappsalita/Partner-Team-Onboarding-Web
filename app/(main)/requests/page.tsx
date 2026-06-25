@@ -15,6 +15,7 @@ const PROVINSI_INDONESIA = [
 ];
 
 const SORTED_PROVINSI_INDONESIA = [...PROVINSI_INDONESIA].sort((a, b) => a.localeCompare(b, "id"));
+const SOW_PEKERJAAN_OPTIONS = ["Dismantle", "Newlink", "Reroute", "Swap upgrade", "Rewiring", "Atp Only"];
 
 interface PartnerRequest {
   id: string;
@@ -486,7 +487,7 @@ export default function RequestsPage() {
               </button>
               {sowDropdownOpen && (
                 <div className="absolute z-20 mt-1 w-full bg-white border border-alita-gray-200 rounded-xl shadow-lg overflow-hidden">
-                  {["Dismantle", "Newlink", "Reroute", "Swap upgrade", "Rewiring"].map((sow) => {
+                  {SOW_PEKERJAAN_OPTIONS.map((sow) => {
                     const selected = formData.sowPekerjaan.includes(sow);
                     return (
                       <button
