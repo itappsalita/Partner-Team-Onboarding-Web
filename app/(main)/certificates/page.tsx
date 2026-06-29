@@ -56,6 +56,51 @@ function CertificatesContent() {
     alitaEmailPassword: ""
   });
 
+  // Certificate sequence settings state
+  const [sequenceStart, setSequenceStart] = useState<number>(314);
+  const [minAllowed, setMinAllowed] = useState<number>(1);
+  const [updatingSequence, setUpdatingSequence] = useState(false);
+
+  const fetchSequence = async () => {
+    try {
+      const res = await fetch("/api/certificates/settings/sequence");
+      if (res.ok) {
+        const json = await res.json();
+        setSequenceStart(json.nextCertificateNumber);
+        setMinAllowed(json.maxCertificateNumber + 1);
+      }
+    } catch (err) {
+      console.error("Fetch sequence error:", err);
+    }
+  };
+
+  const handleUpdateSequence = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sequenceStart < minAllowed) {
+      alert(`❌ Nomor sequence tidak boleh kurang dari ${minAllowed}`);
+      return;
+    }
+    setUpdatingSequence(true);
+    try {
+      const res = await fetch("/api/certificates/settings/sequence", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sequenceStart })
+      });
+      if (res.ok) {
+        alert("✅ Certificate sequence start updated successfully!");
+        fetchSequence();
+      } else {
+        const err = await res.json();
+        alert("❌ " + (err.error || "Gagal memperbarui sequence"));
+      }
+    } catch (err) {
+      alert("❌ Terjadi kesalahan sistem.");
+    } finally {
+      setUpdatingSequence(false);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -74,6 +119,7 @@ function CertificatesContent() {
   useEffect(() => {
     setMounted(true);
     fetchData();
+    fetchSequence();
   }, []);
 
   // Reset to page 1 when filters change
@@ -185,34 +231,63 @@ function CertificatesContent() {
         <p className="text-alita-gray-500 text-sm font-medium">Kelola penerbitan sertifikat dan akses email Alita untuk tim yang sudah lulus training.</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-alita-gray-50 p-1.5 rounded-2xl w-fit border border-alita-gray-100 shadow-inner">
-        <button 
-          className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'pending' 
-              ? 'bg-alita-white text-alita-black shadow-md' 
-              : 'text-alita-gray-400 hover:text-alita-gray-600'
-          }`}
-          onClick={() => setActiveTab('pending')}
-        >
-          Antrean Penerbitan
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'pending' ? 'bg-alita-orange text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
-            {pendingCount}
+      {/* Tabs & Sequence Settings */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex gap-2 bg-alita-gray-50 p-1.5 rounded-2xl w-fit border border-alita-gray-100 shadow-inner">
+          <button 
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+              activeTab === 'pending' 
+                ? 'bg-alita-white text-alita-black shadow-md' 
+                : 'text-alita-gray-400 hover:text-alita-gray-600'
+            }`}
+            onClick={() => setActiveTab('pending')}
+          >
+            Antrean Penerbitan
+            <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'pending' ? 'bg-alita-orange text-alita-white' : 'bg-alita-gray-200 text-alita-gray-500'}`}>
+              {pendingCount}
+            </span>
+          </button>
+          <button 
+            className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+              activeTab === 'published' 
+                ? 'bg-alita-white text-alita-black shadow-md' 
+                : 'text-alita-gray-400 hover:text-alita-gray-600'
+            }`}
+            onClick={() => setActiveTab('published')}
+          >
+            Sudah Diterbitkan
+            <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'published' ? 'bg-green-600 text-alita-white' : 'bg-green-50 text-green-600'}`}>
+              {publishedCount}
+            </span>
+          </button>
+        </div>
+
+        {/* Sequence Start Form */}
+        <form onSubmit={handleUpdateSequence} className="flex items-center gap-2 bg-alita-gray-50 p-1.5 rounded-2xl border border-alita-gray-100 shadow-inner w-full md:w-auto self-end md:self-auto">
+          <span className="text-[11px] font-black uppercase tracking-widest text-alita-gray-500 pl-3 hidden sm:inline">
+            No. Sertifikat Berikutnya:
           </span>
-        </button>
-        <button 
-          className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'published' 
-              ? 'bg-alita-white text-alita-black shadow-md' 
-              : 'text-alita-gray-400 hover:text-alita-gray-600'
-          }`}
-          onClick={() => setActiveTab('published')}
-        >
-          Sudah Diterbitkan
-          <span className={`px-2 py-0.5 rounded-full text-[9px] ${activeTab === 'published' ? 'bg-green-600 text-alita-white' : 'bg-green-50 text-green-600'}`}>
-            {publishedCount}
-          </span>
-        </button>
+          <div className="relative flex items-center bg-alita-white border border-alita-gray-200 rounded-xl px-3 py-1.5">
+            <span className="text-[11px] font-bold text-alita-gray-400 select-none mr-1">
+              Start:
+            </span>
+            <input 
+              type="number" 
+              min={minAllowed}
+              value={sequenceStart}
+              onChange={(e) => setSequenceStart(Number(e.target.value))}
+              disabled={updatingSequence}
+              className="w-16 bg-transparent text-[11px] font-black text-alita-black focus:outline-none focus:ring-0 p-0 border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+          <button 
+            type="submit"
+            disabled={updatingSequence}
+            className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest bg-alita-orange text-alita-white hover:bg-opacity-90 shadow-md transition-all duration-300 disabled:opacity-50"
+          >
+            {updatingSequence ? "Saving..." : "Simpan"}
+          </button>
+        </form>
       </div>
 
       {/* Filter Bar */}
