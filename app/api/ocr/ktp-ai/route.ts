@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,8 +60,8 @@ export async function POST(req: NextRequest) {
           }
         ]);
         if (result) break; // Success!
-      } catch (err: any) {
-        const errorMsg = err.message || "";
+      } catch (err) {
+        const errorMsg = getErrorMessage(err) || "";
         console.warn(`Model ${modelName} call failed:`, errorMsg);
         
         lastError = errorMsg;
@@ -98,9 +99,9 @@ export async function POST(req: NextRequest) {
     const data = JSON.parse(jsonString);
 
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Gemini OCR Error:", error);
-    const status = (error.message || "").includes("429") ? 429 : 500;
-    return NextResponse.json({ error: "Gagal memproses gambar: " + error.message }, { status });
+    const status = (getErrorMessage(error) || "").includes("429") ? 429 : 500;
+    return NextResponse.json({ error: "Gagal memproses gambar: " + getErrorMessage(error) }, { status });
   }
 }

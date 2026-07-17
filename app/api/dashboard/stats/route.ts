@@ -46,132 +46,109 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isPartner = (session?.user as any)?.role === 'PARTNER';
-    const partnerId = isPartner ? (session.user as any).id : null;
+    const isPartner = session?.user?.role === 'PARTNER';
+    const partnerId = isPartner ? session.user.id : null;
 
     // 1. KPI Basic Counts
     const [partnersCount] = await db.select({ value: count() }).from(users).where(eq(users.role, 'PARTNER'));
-    
+
     // Teams count
-    let teamsQuery = db.select({ value: count() }).from(teams).where(ne(teams.status, 'CANCELED'));
-    if (isPartner) {
-      teamsQuery = db.select({ value: count() })
-        .from(teams)
-        .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
-    }
-    const [teamsCount] = await teamsQuery;
+    const [teamsCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(teams)
+          .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
+          .where(and(ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!)))
+      : await db.select({ value: count() }).from(teams).where(ne(teams.status, 'CANCELED'));
 
     // Members count
-    let membersQuery = db.select({ value: count() })
-      .from(teamMembers)
-      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(and(ne(teams.status, 'CANCELED'), eq(teamMembers.isActive, 1)));
-    
-    if (isPartner) {
-      membersQuery = db.select({ value: count() })
-        .from(teamMembers)
-        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-        .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(
-          ne(teams.status, 'CANCELED'), 
-          eq(dataTeamPartners.partnerId, partnerId!),
-          eq(teamMembers.isActive, 1)
-        )) as any;
-    }
-    const [membersCount] = await membersQuery;
+    const [membersCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
+          .where(and(
+            ne(teams.status, 'CANCELED'),
+            eq(dataTeamPartners.partnerId, partnerId!),
+            eq(teamMembers.isActive, 1)
+          ))
+      : await db.select({ value: count() })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(ne(teams.status, 'CANCELED'), eq(teamMembers.isActive, 1)));
 
     // Certified Members count
-    let certifiedQuery = db.select({ value: count() })
-      .from(teamMembers)
-      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(and(
-        ne(teams.status, 'CANCELED'), 
-        isNotNull(teamMembers.certificateFilePath),
-        eq(teamMembers.isActive, 1)
-      ));
-
-    if (isPartner) {
-      certifiedQuery = db.select({ value: count() })
-        .from(teamMembers)
-        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-        .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(
-          ne(teams.status, 'CANCELED'), 
-          isNotNull(teamMembers.certificateFilePath),
-          eq(dataTeamPartners.partnerId, partnerId!),
-          eq(teamMembers.isActive, 1)
-        )) as any;
-    }
-    const [certifiedMembersCount] = await certifiedQuery;
+    const [certifiedMembersCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
+          .where(and(
+            ne(teams.status, 'CANCELED'),
+            isNotNull(teamMembers.certificateFilePath),
+            eq(dataTeamPartners.partnerId, partnerId!),
+            eq(teamMembers.isActive, 1)
+          ))
+      : await db.select({ value: count() })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(
+            ne(teams.status, 'CANCELED'),
+            isNotNull(teamMembers.certificateFilePath),
+            eq(teamMembers.isActive, 1)
+          ));
 
     // Requests count
-    let requestsQuery = db.select({ value: count() }).from(requestForPartners);
-    if (isPartner) {
-      requestsQuery = db.select({ value: count() })
-        .from(requestForPartners)
-        .innerJoin(dataTeamPartners, eq(requestForPartners.id, dataTeamPartners.requestId))
-        .where(eq(dataTeamPartners.partnerId, partnerId!)) as any;
-    }
-    const [requestsCount] = await requestsQuery;
+    const [requestsCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(requestForPartners)
+          .innerJoin(dataTeamPartners, eq(requestForPartners.id, dataTeamPartners.requestId))
+          .where(eq(dataTeamPartners.partnerId, partnerId!))
+      : await db.select({ value: count() }).from(requestForPartners);
 
     // 2. Onboarding Pipeline Logic
     // For Partners, focus on their assigned quota or capacity
-    let totalKebutuhanQuery = db.select({ value: sql<number>`SUM(${requestForPartners.jumlahKebutuhan})` }).from(requestForPartners);
-    if (isPartner) {
-      totalKebutuhanQuery = db.select({ value: sql<number>`SUM(${requestForPartners.jumlahKebutuhan})` })
-        .from(requestForPartners)
-        .innerJoin(dataTeamPartners, eq(requestForPartners.id, dataTeamPartners.requestId))
-        .where(eq(dataTeamPartners.partnerId, partnerId!)) as any;
-    }
-    const [totalKebutuhan] = await totalKebutuhanQuery;
+    const [totalKebutuhan] = isPartner
+      ? await db.select({ value: sql<number>`SUM(${requestForPartners.jumlahKebutuhan})` })
+          .from(requestForPartners)
+          .innerJoin(dataTeamPartners, eq(requestForPartners.id, dataTeamPartners.requestId))
+          .where(eq(dataTeamPartners.partnerId, partnerId!))
+      : await db.select({ value: sql<number>`SUM(${requestForPartners.jumlahKebutuhan})` }).from(requestForPartners);
     const totalQuest = totalKebutuhan.value || 0;
     const unassignedSlots = Math.max(0, totalQuest - teamsCount.value);
-    
-    let sourcingTeamsQuery = db.select({ value: count() }).from(teams).where(eq(teams.status, 'SOURCING'));
-    if (isPartner) {
-      sourcingTeamsQuery = db.select({ value: count() })
-        .from(teams)
-        .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(eq(teams.status, 'SOURCING'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
-    }
-    const [sourcingTeamsCount] = await sourcingTeamsQuery;
+
+    const [sourcingTeamsCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(teams)
+          .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
+          .where(and(eq(teams.status, 'SOURCING'), eq(dataTeamPartners.partnerId, partnerId!)))
+      : await db.select({ value: count() }).from(teams).where(eq(teams.status, 'SOURCING'));
     const totalSourcing = unassignedSlots + sourcingTeamsCount.value;
 
     // Pipeline stages
-    let scheduledQuery = db.select({ value: count() })
-      .from(teams)
-      .where(and(ne(teams.status, 'CANCELED'), sql`${teams.status} IN ('WAIT_SCHEDULE_TRAINING', 'TRAINING_SCHEDULED')`));
-    
-    if (isPartner) {
-      scheduledQuery = db.select({ value: count() })
-        .from(teams)
-        .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(ne(teams.status, 'CANCELED'), sql`${teams.status} IN ('WAIT_SCHEDULE_TRAINING', 'TRAINING_SCHEDULED')`, eq(dataTeamPartners.partnerId, partnerId!))) as any;
-    }
-    const [scheduledTeamsCount] = await scheduledQuery;
+    const [scheduledTeamsCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(teams)
+          .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
+          .where(and(ne(teams.status, 'CANCELED'), sql`${teams.status} IN ('WAIT_SCHEDULE_TRAINING', 'TRAINING_SCHEDULED')`, eq(dataTeamPartners.partnerId, partnerId!)))
+      : await db.select({ value: count() })
+          .from(teams)
+          .where(and(ne(teams.status, 'CANCELED'), sql`${teams.status} IN ('WAIT_SCHEDULE_TRAINING', 'TRAINING_SCHEDULED')`));
 
-    let evaluatedQuery = db.select({ value: count() }).from(teams).where(eq(teams.status, 'TRAINING_EVALUATED'));
-    if (isPartner) {
-      evaluatedQuery = db.select({ value: count() })
-        .from(teams)
-        .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
-        .where(and(eq(teams.status, 'TRAINING_EVALUATED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
-    }
-    const [evaluatedTeamsCount] = await evaluatedQuery;
-    
+    const [evaluatedTeamsCount] = isPartner
+      ? await db.select({ value: count() })
+          .from(teams)
+          .innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id))
+          .where(and(eq(teams.status, 'TRAINING_EVALUATED'), eq(dataTeamPartners.partnerId, partnerId!)))
+      : await db.select({ value: count() }).from(teams).where(eq(teams.status, 'TRAINING_EVALUATED'));
+
     // Other metrics
-    let pendingCertsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isActive, 1), eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED')));
-    if (isPartner) {
-      pendingCertsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isActive, 1), eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
-    }
-    const [pendingCerts] = await pendingCertsQuery;
-    
-    let issuedEmailsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isActive, 1), isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED')));
-    if (isPartner) {
-      issuedEmailsQuery = db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isActive, 1), isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!))) as any;
-    }
-    const [issuedEmails] = await issuedEmailsQuery;
+    const [pendingCerts] = isPartner
+      ? await db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isActive, 1), eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!)))
+      : await db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isActive, 1), eq(teamMembers.isAttendedTraining, 1), isNull(teamMembers.certificateFilePath), ne(teams.status, 'CANCELED')));
+
+    const [issuedEmails] = isPartner
+      ? await db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).innerJoin(dataTeamPartners, eq(teams.dataTeamPartnerId, dataTeamPartners.id)).where(and(eq(teamMembers.isActive, 1), isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED'), eq(dataTeamPartners.partnerId, partnerId!)))
+      : await db.select({ value: count() }).from(teamMembers).innerJoin(teams, eq(teamMembers.teamId, teams.id)).where(and(eq(teamMembers.isActive, 1), isNotNull(teamMembers.alitaExtEmail), ne(teams.status, 'CANCELED')));
 
     const pipelineData = [
       { name: "Sourcing/Assigned", value: totalSourcing },
@@ -183,7 +160,7 @@ export async function GET() {
     // 3. Distribution Map Refinement
     // For Admin: Show request demand per province
     // For Partner: Show THEIR actual formed teams per province
-    let provinceMap: Record<string, number> = {};
+    const provinceMap: Record<string, number> = {};
 
     if (isPartner) {
       // Logic for Partner: Count their teams per province

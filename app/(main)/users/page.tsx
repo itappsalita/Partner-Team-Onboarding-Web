@@ -4,17 +4,27 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Modal from "../../../components/Modal";
 
-const ROLES = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_CULTURE'];
+const ROLES = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_CULTURE', 'IT_BM'];
+
+interface AppUser {
+  id: string;
+  displayId?: string | null;
+  name: string;
+  email: string;
+  role: string;
+  companyName?: string | null;
+  isActive: number;
+}
 
 export default function UsersPage() {
   const { data: session, update } = useSession();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Filters
@@ -62,7 +72,7 @@ export default function UsersPage() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (user: any) => {
+  const handleOpenEdit = (user: AppUser) => {
     setModalMode('edit');
     setSelectedUser(user);
     setFormData({ 
@@ -81,13 +91,13 @@ export default function UsersPage() {
     try {
       const url = "/api/users";
       const method = modalMode === 'create' ? "POST" : "PUT";
-      const body = modalMode === 'create' 
-        ? formData 
-        : { ...formData, id: selectedUser.id };
+      const body: Record<string, unknown> = modalMode === 'create'
+        ? { ...formData }
+        : { ...formData, id: selectedUser?.id };
 
       // If editing and password is empty, don't send it to prevent hashing empty string
       if (modalMode === 'edit' && !formData.password) {
-        delete (body as any).password;
+        delete body.password;
       }
 
       const res = await fetch(url, {
@@ -98,7 +108,7 @@ export default function UsersPage() {
 
       if (res.ok) {
         // If the updated user is the current logged-in user, update the session
-        if (modalMode === 'edit' && selectedUser?.id?.toString() === (session?.user as any)?.id?.toString()) {
+        if (modalMode === 'edit' && selectedUser?.id?.toString() === session?.user?.id?.toString()) {
           console.log("Updating session for current user...");
           await update({ name: formData.name });
         }
@@ -109,14 +119,14 @@ export default function UsersPage() {
         const err = await res.json();
         alert(err.error || "Gagal memproses data user");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const toggleUserStatus = async (user: any) => {
+  const toggleUserStatus = async (user: AppUser) => {
     try {
       const res = await fetch("/api/users", {
         method: "PUT",
@@ -129,7 +139,7 @@ export default function UsersPage() {
         const err = await res.json();
         alert(err.error || "Gagal mengubah status user.");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     }
   };
@@ -279,7 +289,7 @@ export default function UsersPage() {
                           EDIT
                         </button>
                         <button 
-                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm active:scale-95 min-w-[120px] border flex items-center justify-center gap-2 ${
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm active:scale-95 min-w-30 border flex items-center justify-center gap-2 ${
                             user.isActive === 1 
                               ? "bg-red-50 text-red-600 border-red-100 hover:bg-red-100" 
                               : "bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800"
@@ -326,7 +336,7 @@ export default function UsersPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'
@@ -437,7 +447,7 @@ export default function UsersPage() {
 
           <button 
             type="submit" 
-            className="w-full mt-4 py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+            className="w-full mt-4 py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? "Processing..." : (modalMode === 'create' ? "Register User" : "Update User Account")}

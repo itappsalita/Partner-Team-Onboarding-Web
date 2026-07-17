@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import type { ValueType, NameType } from "recharts/types/component/DefaultTooltipContent";
 
 const statCardConfig = [
   { 
@@ -29,17 +30,27 @@ const statCardConfig = [
 
 const COLORS = ['#ff7a00', '#0ea5e9', '#10b981', '#8b5cf6', '#f43f5e'];
 
+interface PipelineDatum {
+  name: string;
+  value: number;
+}
+
+interface ProvinceDatum {
+  name: string;
+  demand: number;
+}
+
 export default function DashboardHome() {
   const { data: session } = useSession();
   const [stats, setStats] = useState<Record<string, string>>({});
-  const [pipelineData, setPipelineData] = useState<any[]>([]);
-  const [provinceData, setProvinceData] = useState<any[]>([]);
+  const [pipelineData, setPipelineData] = useState<PipelineDatum[]>([]);
+  const [provinceData, setProvinceData] = useState<ProvinceDatum[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isPartner = (session?.user as any)?.role === 'PARTNER';
+  const isPartner = session?.user?.role === 'PARTNER';
 
   // Dynamic config based on role
-  let dynamicCards = [...statCardConfig];
+  const dynamicCards = [...statCardConfig];
   
   if (isPartner) {
     // 1. Find the partners card index
@@ -71,8 +82,8 @@ export default function DashboardHome() {
           teams: data.teams?.toString() || "0",
           members: data.members?.toString() || "0",
           pendingCerts: data.pendingCerts?.toString() || "0",
-          sourcingCount: data.pipelineData?.find((d: any) => d.name === "Sourcing/Assigned")?.value?.toString() || "0",
-          scheduledCount: data.pipelineData?.find((d: any) => d.name === "Training Scheduled")?.value?.toString() || "0",
+          sourcingCount: data.pipelineData?.find((d: PipelineDatum) => d.name === "Sourcing/Assigned")?.value?.toString() || "0",
+          scheduledCount: data.pipelineData?.find((d: PipelineDatum) => d.name === "Training Scheduled")?.value?.toString() || "0",
         });
         setPipelineData(data.pipelineData || []);
         setProvinceData(data.provinceData || []);
@@ -103,10 +114,10 @@ export default function DashboardHome() {
             className="bg-alita-white p-4 rounded-2xl shadow-card border border-alita-gray-100/80 transition-all duration-300 hover:shadow-elevated hover:-translate-y-1 group relative overflow-hidden flex flex-col justify-between"
             style={{ animationDelay: `${index * 60}ms` }}
           >
-            <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${card.color} opacity-80`} />
+            <div className={`absolute top-0 left-0 right-0 h-0.75 bg-linear-to-r ${card.color} opacity-80`} />
             
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-alita-gray-400 leading-none">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-alita-gray-400 leading-none">
                 {card.label}
               </div>
               <div className={`w-9 h-9 ${card.bgLight} rounded-xl flex items-center justify-center ${card.textColor} group-hover:scale-110 transition-transform duration-300 shadow-sm opacity-80`}>
@@ -129,7 +140,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* Pipeline Chart */}
-        <div className="bg-alita-white rounded-2xl shadow-card border border-alita-gray-100/80 p-5 flex flex-col h-[280px]">
+        <div className="bg-alita-white rounded-2xl shadow-card border border-alita-gray-100/80 p-5 flex flex-col h-70">
           <div className="mb-3">
             <h2 className="text-lg font-black text-alita-black tracking-tight leading-none mb-1">Onboarding Pipeline</h2>
             <p className="text-[11px] text-alita-gray-400 font-medium tracking-wide">Melacak jumlah tim/personel di setiap fase</p>
@@ -163,7 +174,7 @@ export default function DashboardHome() {
                       cursor={{ fill: 'rgba(255,122,0,0.05)' }}
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }}
                       itemStyle={{ color: '#0f0f0f', fontWeight: 'bold' }}
-                      formatter={(value: any, name: any) => [`${value} Tim`, name]}
+                      formatter={(value: ValueType | undefined, name: NameType | undefined) => [`${value} Tim`, name]}
                     />
                     <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={45}>
                       <LabelList dataKey="value" position="right" fill="#4E4E5C" fontSize={13} fontWeight={800} />
@@ -179,7 +190,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Demand Region Chart */}
-        <div className="bg-alita-white rounded-2xl shadow-card border border-alita-gray-100/80 p-5 flex flex-col h-[280px]">
+        <div className="bg-alita-white rounded-2xl shadow-card border border-alita-gray-100/80 p-5 flex flex-col h-70">
           <div className="mb-3">
             <h2 className="text-lg font-black text-alita-black tracking-tight leading-none mb-1">Top Demand Regions</h2>
             <p className="text-[11px] text-alita-gray-400 font-medium tracking-wide">Distribusi kebutuhan tim per provinsi dari SOW</p>
@@ -233,7 +244,7 @@ export default function DashboardHome() {
                     <RechartsTooltip 
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }}
                       itemStyle={{ color: '#0f0f0f', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`${value} Tim`, "Kebutuhan"]}
+                      formatter={(value: ValueType | undefined) => [`${value} Tim`, "Kebutuhan"]}
                     />
                     <Legend 
                       layout="vertical" 

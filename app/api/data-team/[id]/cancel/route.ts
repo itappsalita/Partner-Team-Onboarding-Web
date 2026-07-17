@@ -3,15 +3,16 @@ import { db } from "@/db";
 import { dataTeamPartners, teams } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../auth/[...nextauth]/route";
-import { eq, and, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: idStr } = await params;
     const assignmentId = idStr;
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     
     if (!session || (role !== "PROCUREMENT" && role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Unauthorized. Procurement or Superadmin only." }, { status: 403 });
@@ -54,8 +55,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     return NextResponse.json({ message: "Assignment canceled successfully." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Cancel assignment error:", error);
-    return NextResponse.json({ error: "Failed to cancel assignment: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to cancel assignment: " + getErrorMessage(error) }, { status: 500 });
   }
 }

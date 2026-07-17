@@ -5,6 +5,7 @@ import { eq, lt, or } from "drizzle-orm";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "../../../../lib/mail";
 import { generateUuid } from "../../../../lib/uuid";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -48,8 +49,8 @@ export async function POST(req: Request) {
     await sendPasswordResetEmail(email, token);
 
     return NextResponse.json({ message: "Instruksi reset password telah dikirimkan ke email Anda." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Forgot password API error:", error);
-    return NextResponse.json({ error: "Gagal memproses permintaan: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memproses permintaan: " + getErrorMessage(error) }, { status: 500 });
   }
 }

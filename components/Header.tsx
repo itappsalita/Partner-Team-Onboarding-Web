@@ -22,7 +22,7 @@ export default function Header() {
   const currentPage = breadcrumbMap[pathname] || "Dashboard";
 
   return (
-    <header className="h-[64px] bg-alita-white/80 backdrop-blur-md border-b border-alita-gray-100/80 flex items-center justify-between px-4 md:px-8 z-20 sticky top-0">
+    <header className="h-16 bg-alita-white/80 backdrop-blur-md border-b border-alita-gray-100/80 flex items-center justify-between px-4 md:px-8 z-20 sticky top-0">
       <div className="flex items-center gap-3">
         {/* Hamburger Menu - Mobile only */}
         <button 
@@ -55,8 +55,8 @@ export default function Header() {
             <span className="hidden md:inline text-[0.8rem] font-semibold text-alita-gray-500">
               {session.user.name}
             </span>
-            <span className="inline-flex items-center bg-gradient-to-r from-alita-orange-subtle to-alita-orange-glow text-alita-orange-dark px-2.5 py-1 rounded-full text-[0.65rem] font-bold tracking-[0.3px] border border-alita-orange-glow">
-              {(session.user as any).role}
+            <span className="inline-flex items-center bg-linear-to-r from-alita-orange-subtle to-alita-orange-glow text-alita-orange-dark px-2.5 py-1 rounded-full text-[0.65rem] font-bold tracking-[0.3px] border border-alita-orange-glow">
+              {session.user.role}
             </span>
           </>
         )}

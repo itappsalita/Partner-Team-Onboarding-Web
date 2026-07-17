@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getErrorMessage } from "@/lib/errors";
 // Forced refresh to clear stale Next.js cache
 import { db } from "@/db";
 import { teamMembers, teams, dataTeamPartners } from "@/db/schema";
@@ -8,6 +9,8 @@ import { createNotification } from "@/lib/notifications";
 import path from "path";
 import fs from "fs-extra";
 import { generateCertificatePdf, getRomanMonth } from "./certUtils";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 const CERTIFICATE_SEQUENCE_START = 314;
 
@@ -25,37 +28,44 @@ function formatCertificateRelativePath(certificateNumber: string) {
  * @swagger
  * /api/certificates/issue:
  *   put:
- *     summary: Issue certificate and external credentials
- *     description: Generates a PDF certificate for a member (via Puppeteer) and assigns Alita email credentials. Automatically triggers team and request status synchronization.
+ *     summary: Issue certificate (People & Culture / SUPERADMIN only)
+ *     description: Generates a PDF certificate for a member (via Puppeteer). Automatically triggers team and request status synchronization. Does not touch Alita external email credentials - see /api/certificates/email-ext for that.
  *     tags: [Certificates]
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [memberId, alitaExtEmail]
+ *             required: [memberId]
  *             properties:
  *               memberId:
  *                 type: string
- *               alitaExtEmail:
- *                 type: string
- *               alitaEmailPassword:
- *                 type: string
  *     responses:
  *       200:
- *         description: Certificate generated and credentials issued successfully.
+ *         description: Certificate generated successfully.
  *       400:
  *         description: Missing required fields.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Access denied.
  *       404:
  *         description: Member not found.
  */
 export async function PUT(req: Request) {
   try {
-    const { memberId, alitaExtEmail, alitaEmailPassword } = await req.json();
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const role = session.user.role;
+    if (role !== "PEOPLE_CULTURE" && role !== "SUPERADMIN") {
+      return NextResponse.json({ error: "Access denied. People & Culture only." }, { status: 403 });
+    }
 
-    if (!memberId || !alitaExtEmail) {
+    const { memberId } = await req.json();
+
+    if (!memberId) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required field: memberId" },
         { status: 400 },
       );
     }
@@ -80,101 +90,67 @@ export async function PUT(req: Request) {
     if (!memberData)
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
-    // 2. Handle Certificate Generation conditionally
-    let relativePath = memberData.certificateFilePath;
-    let certNumber = memberData.certificateNumber;
-    let fullCertNo = "";
-
-    if (!memberData.certificateFilePath) {
-      // Generate Certificate Number
-      const issuedAt = new Date();
-      const [lastCertificate] = await db
-        .select({
-          maxCertificateNumber: sql<number>`max(${teamMembers.certificateNumber})`,
-        })
-        .from(teamMembers);
-      const lastSequence = Math.max(
-        Number(lastCertificate?.maxCertificateNumber || 0),
-        CERTIFICATE_SEQUENCE_START,
-      );
-      certNumber = lastSequence + 1;
-      fullCertNo = formatCertificateNumber(certNumber, issuedAt);
-
-      // Prepare PDF Data
-      const certInputData = {
-        NO_SERTIFIKAT: fullCertNo,
-        EMPLOYEE_NAME: memberData.name,
-        KTP: memberData.nik,
-        OCCUPATION: memberData.position,
-        Date_Training: memberData.team?.trainingProcess?.trainingDate
-          ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })
-          : "-",
-        Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }),
-      };
-
-      // Generate & Save PDF
-      const pdfBuffer = await generateCertificatePdf(certInputData);
-      relativePath = formatCertificateRelativePath(fullCertNo);
-      const absolutePath = path.join(
-        process.cwd(),
-        "public",
-        relativePath.replace(/^\/+/, ""),
-      );
-
-      await fs.ensureDir(path.dirname(absolutePath));
-      await fs.writeFile(absolutePath, pdfBuffer);
-    } else {
-      // For existing certificates, keep the number for the response display
-      const issuedAt = memberData.certificateDate
-        ? new Date(memberData.certificateDate)
-        : new Date();
-      fullCertNo = formatCertificateNumber(certNumber || 0, issuedAt);
-
-      if (relativePath && certNumber) {
-        const nextRelativePath = formatCertificateRelativePath(fullCertNo);
-
-        if (relativePath !== nextRelativePath) {
-          const currentAbsolutePath = path.join(
-            process.cwd(),
-            "public",
-            relativePath.replace(/^\/+/, ""),
-          );
-          const nextAbsolutePath = path.join(
-            process.cwd(),
-            "public",
-            nextRelativePath.replace(/^\/+/, ""),
-          );
-
-          if (await fs.pathExists(currentAbsolutePath)) {
-            await fs.ensureDir(path.dirname(nextAbsolutePath));
-            if (!(await fs.pathExists(nextAbsolutePath))) {
-              await fs.move(currentAbsolutePath, nextAbsolutePath);
-            }
-            relativePath = nextRelativePath;
-          }
-        }
-      }
+    // Certificate generation is a one-time action; re-issuing is not supported here
+    if (memberData.certificateFilePath) {
+      return NextResponse.json({
+        message: "Certificate already exists for this member.",
+        filePath: memberData.certificateFilePath,
+      });
     }
+
+    // 2. Generate Certificate Number
+    const issuedAt = new Date();
+    const [lastCertificate] = await db
+      .select({
+        maxCertificateNumber: sql<number>`max(${teamMembers.certificateNumber})`,
+      })
+      .from(teamMembers);
+    const lastSequence = Math.max(
+      Number(lastCertificate?.maxCertificateNumber || 0),
+      CERTIFICATE_SEQUENCE_START,
+    );
+    const certNumber = lastSequence + 1;
+    const fullCertNo = formatCertificateNumber(certNumber, issuedAt);
+
+    // Prepare PDF Data
+    const certInputData = {
+      NO_SERTIFIKAT: fullCertNo,
+      EMPLOYEE_NAME: memberData.name,
+      KTP: memberData.nik,
+      OCCUPATION: memberData.position,
+      Date_Training: memberData.team?.trainingProcess?.trainingDate
+        ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "-",
+      Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    };
+
+    // Generate & Save PDF
+    const pdfBuffer = await generateCertificatePdf(certInputData);
+    const relativePath = formatCertificateRelativePath(fullCertNo);
+    const absolutePath = path.join(
+      process.cwd(),
+      "public",
+      relativePath.replace(/^\/+/, ""),
+    );
+
+    await fs.ensureDir(path.dirname(absolutePath));
+    await fs.writeFile(absolutePath, pdfBuffer);
 
     // 5. Update Member Record
     await db
       .update(teamMembers)
       .set({
-        alitaExtEmail,
-        alitaEmailPassword,
         certificateNumber: certNumber,
         certificateFilePath: relativePath,
-        ...(!memberData.certificateFilePath
-          ? { certificateDate: new Date() }
-          : {}),
+        certificateDate: new Date(),
       })
       .where(eq(teamMembers.id, memberId));
 
@@ -240,23 +216,21 @@ export async function PUT(req: Request) {
       await createNotification({
         userId: memberData.team.dataTeamPartner.partnerId,
         title: "Sertifikat Diterbitkan",
-        message: `Sertifikat dan akun akses untuk ${memberData.name} telah diterbitkan.`,
+        message: `Sertifikat untuk ${memberData.name} telah diterbitkan.`,
         type: "CERTIFICATE",
         link: `/data-team?assignmentId=${memberData.team.dataTeamPartnerId}&openModal=true`,
       });
     }
 
     return NextResponse.json({
-      message: memberData.certificateFilePath
-        ? "Credentials updated successfully"
-        : "Certificate generated & Access issued successfully",
+      message: "Certificate generated successfully",
       filePath: relativePath,
       certNumber: fullCertNo,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Issue certificate error:", error);
     return NextResponse.json(
-      { error: "Gagal memproses sertifikat: " + error.message },
+      { error: "Gagal memproses sertifikat: " + getErrorMessage(error) },
       { status: 500 },
     );
   }

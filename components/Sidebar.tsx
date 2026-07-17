@@ -66,7 +66,7 @@ const roleAccess: Record<string, string[]> = {
   "Request for Partner": ["SUPERADMIN", "PMO_OPS", "PROCUREMENT"],
   "Data Team Partner": ["SUPERADMIN", "PROCUREMENT", "PARTNER", "QA", "PEOPLE_CULTURE"],
   "QA Training": ["SUPERADMIN", "QA"],
-  "Publish Certificate": ["SUPERADMIN", "PEOPLE_CULTURE"],
+  "Publish Certificate": ["SUPERADMIN", "PEOPLE_CULTURE", "IT_BM"],
   "Database Anggota": ["SUPERADMIN", "PMO_OPS", "PROCUREMENT", "QA", "PEOPLE_CULTURE"],
   "Project ID": ["SUPERADMIN", "PMO_OPS"],
   "User Settings": ["SUPERADMIN"],
@@ -76,7 +76,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { isOpen, close } = useSidebar();
-  const userRole = (session?.user as any)?.role;
+  const userRole = session?.user?.role;
 
   return (
     <>
@@ -88,10 +88,10 @@ export default function Sidebar() {
         />
       )}
 
-      <aside className={`fixed md:relative z-40 h-full w-[272px] min-w-[272px] bg-gradient-to-b from-alita-black via-alita-black-soft to-alita-charcoal text-alita-white flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+      <aside className={`fixed md:relative z-40 h-full w-68 min-w-68 bg-linear-to-b from-alita-black via-alita-black-soft to-alita-charcoal text-alita-white flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
         {/* Logo */}
         <div className="p-7 flex items-center gap-3 border-b border-white/5">
-          <div className="w-9 h-9 relative flex-shrink-0">
+          <div className="w-9 h-9 relative shrink-0">
             <Image 
               src="/images/logo.png" 
               alt="Alita Logo" 
@@ -112,7 +112,7 @@ export default function Sidebar() {
         <nav className="flex-1 p-[0.5rem_0.75rem] flex flex-col gap-0.5 overflow-y-auto">
           {menuItems.map((item) => {
             const allowed = roleAccess[item.name];
-            if (allowed && !allowed.includes(userRole)) return null;
+            if (allowed && (!userRole || !allowed.includes(userRole))) return null;
 
             const isActive = pathname === item.href || 
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -124,8 +124,8 @@ export default function Sidebar() {
                 onClick={close}
                 className={`flex items-center gap-3 px-[0.85rem] py-[0.65rem] rounded-lg transition-all duration-200 border text-[0.82rem] group ${
                   isActive 
-                  ? "text-alita-white bg-gradient-to-r from-alita-orange to-alita-orange-dark shadow-orange border-transparent font-semibold" 
-                  : "text-alita-gray-300 font-medium border-transparent hover:text-alita-white hover:bg-white/[0.06] hover:border-white/[0.04]"
+                  ? "text-alita-white bg-linear-to-r from-alita-orange to-alita-orange-dark shadow-orange border-transparent font-semibold" 
+                  : "text-alita-gray-300 font-medium border-transparent hover:text-alita-white hover:bg-white/6 hover:border-white/4"
                 }`}
               >
                 <span className={`w-5 h-5 flex items-center justify-center shrink-0 transition-transform duration-200 ${isActive ? '' : 'group-hover:scale-110'}`}>
@@ -144,7 +144,7 @@ export default function Sidebar() {
         {session?.user && (
           <div className="p-5">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-alita-orange to-alita-orange-dark flex items-center justify-center text-white text-sm font-black shrink-0 shadow-orange/30">
+              <div className="w-9 h-9 rounded-full bg-linear-to-br from-alita-orange to-alita-orange-dark flex items-center justify-center text-white text-sm font-black shrink-0 shadow-orange/30">
                 {session.user.name?.charAt(0).toUpperCase() || "U"}
               </div>
               <div className="min-w-0 flex-1">
@@ -154,7 +154,7 @@ export default function Sidebar() {
             </div>
             <button
               onClick={() => signOut()}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[0.75rem] font-semibold text-alita-gray-400 border border-white/[0.06] bg-white/[0.03] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all duration-200"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[0.75rem] font-semibold text-alita-gray-400 border border-white/6 bg-white/3 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all duration-200"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>

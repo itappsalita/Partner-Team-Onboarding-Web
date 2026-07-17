@@ -1,51 +1,114 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import Modal from "./Modal";
-import TeamForm from "./TeamForm";
+import TeamForm, { TeamFormData } from "./TeamForm";
 import MemberWizard from "./MemberWizard";
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  nik?: string;
+  position: string;
+  phone?: string | null;
+  isActive: number;
+  isReturning?: number;
+  selfieFilePath?: string | null;
+  ktpFilePath?: string | null;
+  displayId?: string | number;
+  isAttendedTraining?: number;
+  alitaExtEmail?: string | null;
+  alitaEmailPassword?: string | null;
+  certificateFilePath?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+}
+
+export interface Team {
+  id: string;
+  teamNumber: string | number;
+  displayId?: string | number;
+  leaderName?: string | null;
+  leaderPhone?: string | null;
+  location?: string | null;
+  status?: string | null;
+  tkpk1Number?: string | null;
+  tkpk1FilePath?: string | null;
+  firstAidNumber?: string | null;
+  firstAidFilePath?: string | null;
+  electricalNumber?: string | null;
+  electricalFilePath?: string | null;
+  position?: string | null;
+  members?: TeamMember[];
+}
+
+interface AssignmentRequest {
+  sowPekerjaan?: string;
+  provinsi?: string;
+  area?: string;
+  membersPerTeam?: number;
+}
+
+export interface Assignment {
+  id: string;
+  status?: string | null;
+  request?: AssignmentRequest;
+}
+
 interface TeamManagementProps {
-  assignment: any; // dataTeamPartner object
+  // Callers (data-team, certificates, qa-training pages) each keep their own
+  // locally-scoped "dataTeamPartner" shape, some of which are nullable.
+  // Accept that wider surface here and narrow to `Assignment` below, rather
+  // than forcing every caller to conform to one exact interface.
+  assignment: unknown;
   onClose: () => void;
 }
 
-export default function TeamManagement({ assignment, onClose }: TeamManagementProps) {
-  const { data: session } = useSession() as any;
-  const userRole = (session?.user as any)?.role;
+interface EditMemberForm {
+  position: string;
+  phone: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  selfieFile: File | null;
+}
+
+export default function TeamManagement({ assignment: rawAssignment, onClose }: TeamManagementProps) {
+  // Callers pass loosely-typed "dataTeamPartner" objects (see prop comment
+  // above); narrow to the concrete shape this component actually relies on.
+  const assignment = rawAssignment as Assignment;
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
   const isPartner = userRole === "PARTNER";
   const isSuperAdmin = userRole === "SUPERADMIN";
-  
+
   // Structural changes (Edit Team/Add Member) are locked if Completed/Canceled
-  const isStructuralReadOnly = (!isPartner && !isSuperAdmin) || 
-                                assignment.status === 'COMPLETED' || 
+  const isStructuralReadOnly = (!isPartner && !isSuperAdmin) ||
+                                assignment.status === 'COMPLETED' ||
                                 assignment.status === 'CANCELED';
-                     
+
   const isCanceled = assignment.status === 'CANCELED';
 
-  const [teams, setTeams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTeam, setActiveTeam] = useState<any>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [, setLoading] = useState(true);
+  const [activeTeam, setActiveTeam] = useState<Team | null>(null);
   const [memberPage, setMemberPage] = useState(1);
   const membersPerPage = 10;
-  
+
   // Modals
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [requesting, setRequesting] = useState<string | null>(null);
-  
-  const [teamFormInitial, setTeamFormInitial] = useState<any>(null);
-  const [memberFormInitial, setMemberFormInitial] = useState<any>(null);
+
+  const [teamFormInitial, setTeamFormInitial] = useState<TeamFormData | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Member Edit State
-  const [editingMember, setEditingMember] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ position: '', phone: '', emergencyContactName: '', emergencyContactPhone: '', selfieFile: null as File | null });
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [editForm, setEditForm] = useState<EditMemberForm>({ position: '', phone: '', emergencyContactName: '', emergencyContactPhone: '', selfieFile: null });
   const [exportingTeamId, setExportingTeamId] = useState<string | null>(null);
 
-  const handleExportTeam = async (team: any) => {
+  const handleExportTeam = async (team: Team) => {
     setExportingTeamId(team.id);
     try {
       const res = await fetch(`/api/data-team/export?id=${assignment.id}&teamId=${team.id}`);
@@ -66,21 +129,27 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     }
   };
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/data-team/teams?dataTeamPartnerId=${assignment.id}`);
       const data = await res.json();
-      
+
       // Ensure data is an array before setting state
       if (Array.isArray(data)) {
         setTeams(data);
-        if (data.length > 0 && !activeTeam) {
-          setActiveTeam(data[0]);
-        } else if (activeTeam) {
-          const updatedActive = data.find((t: any) => t.id === activeTeam.id);
-          if (updatedActive) setActiveTeam(updatedActive);
-        }
+        // Use the functional updater so we don't need `activeTeam` in the
+        // dependency array (avoids an infinite fetch loop, since the API
+        // response always returns fresh object references).
+        setActiveTeam((prev) => {
+          if (data.length > 0 && !prev) {
+            return data[0];
+          } else if (prev) {
+            const updatedActive = data.find((t: Team) => t.id === prev.id);
+            return updatedActive || prev;
+          }
+          return prev;
+        });
       } else {
         console.error("API Error or Invalid format:", data);
         setTeams([]); // Fallback to empty array
@@ -91,7 +160,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [assignment.id]);
 
 
   const handleSaveEditMember = async () => {
@@ -130,7 +199,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
 
   useEffect(() => {
     fetchTeams();
-  }, [assignment.id]);
+  }, [fetchTeams]);
 
   // Reset member page when active team changes
   useEffect(() => {
@@ -148,30 +217,11 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  const openAddTeamModal = () => {
-    setIsEditMode(false);
-    setTeamFormInitial({
-      id: null,
-      teamNumber: (teams.length + 1).toString(),
-      leaderName: "",
-      leaderPhone: "",
-      tkpk1Number: "",
-      tkpk1File: null,
-      firstAidNumber: "",
-      firstAidFile: null,
-      electricalNumber: "",
-      electricalFile: null,
-      position: "Team Leader",
-      location: assignment.request ? `${assignment.request.provinsi}, ${assignment.request.area}` : ""
-    });
-    setIsTeamModalOpen(true);
-  };
-
-  const openEditTeamModal = (team: any) => {
+  const openEditTeamModal = (team: Team) => {
     setIsEditMode(true);
     // Find leader from members if not already populated in team object
-    const memberLeader = team.members?.find((m: any) => m.position === "Leader" && m.isActive === 1);
-    
+    const memberLeader = team.members?.find((m: TeamMember) => m.position === "Leader" && m.isActive === 1);
+
     setTeamFormInitial({
       id: team.id,
       teamNumber: team.teamNumber.toString(),
@@ -189,8 +239,6 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
     setIsTeamModalOpen(true);
   };
 
-
-
   const handleDeleteMember = async (memberId: string, isCertified: boolean) => {
     const action = isCertified ? "menonaktifkan" : "menghapus";
     if (!confirm(`Apakah Anda yakin ingin ${action} anggota ini?`)) return;
@@ -206,16 +254,16 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
         const err = await res.json();
         alert(err.error || `Gagal ${action} anggota`);
       }
-    } catch (err) {
+    } catch {
       alert("Sistem error.");
     }
   };
 
   const executeRequestTraining = async () => {
     if (!activeTeam || assignment.status === 'CANCELED' || assignment.status === 'COMPLETED') return;
-    
-    const activeMembers = activeTeam.members?.filter((m: any) => m.isActive === 1) || [];
-    const hasLeader = activeMembers.some((m: any) => m.position === "Leader");
+
+    const activeMembers = activeTeam.members?.filter((m: TeamMember) => m.isActive === 1) || [];
+    const hasLeader = activeMembers.some((m: TeamMember) => m.position === "Leader");
     const requiredQuota = assignment.request?.membersPerTeam || 0;
     
     if (!hasLeader || !activeTeam.tkpk1Number || activeMembers.length !== requiredQuota) {
@@ -242,15 +290,15 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
         const data = await res.json();
         alert(data.error || "Gagal mengajukan training");
       }
-    } catch (e) {
+    } catch {
       alert("Terjadi kesalahan jaringan.");
     } finally {
       setRequesting(null);
     }
   };
 
-  const activeMembersLen = activeTeam?.members?.filter((m: any) => m.isActive === 1).length || 0;
-  const hasLeader = activeTeam?.members?.some((m: any) => m.position === "Leader" && m.isActive === 1);
+  const activeMembersLen = activeTeam?.members?.filter((m: TeamMember) => m.isActive === 1).length || 0;
+  const hasLeader = activeTeam?.members?.some((m: TeamMember) => m.position === "Leader" && m.isActive === 1);
   const requiredQuota = assignment.request?.membersPerTeam || 0;
 
   const isTeamValidToRequest = activeTeam && 
@@ -285,7 +333,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                 onClick={() => setActiveTeam(t)}
                 className={`p-3 lg:p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 shrink-0 w-45 lg:w-full ${
                   activeTeam?.id === t.id 
-                    ? 'bg-alita-orange text-alita-white border-alita-orange shadow-[0_8px_20px_rgba(255,122,0,0.2)] scale-[1.02]' 
+                    ? 'bg-alita-orange text-alita-white border-alita-orange shadow-[0_8px_20px_rgba(255,122,0,0.2)] scale-102' 
                     : 'bg-alita-white text-alita-black border-alita-gray-100 hover:border-alita-gray-300 shadow-sm'
                 } ${!t.leaderName ? 'border-dashed' : ''}`}
               >
@@ -444,7 +492,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
               <div className="mb-6 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg lg:text-[1.1rem] font-black text-alita-black tracking-tight">Anggota Tim</h3>
-                  <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-alita-gray-400">Total: {activeTeam.members?.filter((m: any) => m.isActive === 1).length || 0} Aktif</p>
+                  <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-alita-gray-400">Total: {activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0} Aktif</p>
                 </div>
                  {!isStructuralReadOnly && (
                   <div className="flex items-center gap-2 lg:gap-3">
@@ -453,10 +501,10 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                     </span>
                     <button 
                       onClick={() => setIsMemberModalOpen(true)}
-                      disabled={!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath || ((activeTeam.members?.filter((m: any) => m.isActive === 1).length || 0) >= (assignment.request?.membersPerTeam || 0))}
+                      disabled={!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath || ((activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) >= (assignment.request?.membersPerTeam || 0))}
                       className="px-4 lg:px-5 py-2 lg:py-2.5 bg-alita-black text-alita-white rounded-lg text-[10px] lg:text-xs font-bold hover:bg-alita-orange disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg active:scale-95"
                     >
-                      { ((activeTeam.members?.filter((m: any) => m.isActive === 1).length || 0) >= (assignment.request?.membersPerTeam || 0)) 
+                      { ((activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) >= (assignment.request?.membersPerTeam || 0)) 
                         ? "Kuota Penuh" 
                         : "+ Tambah Anggota" 
                       }
@@ -586,7 +634,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                       <button
                         onClick={handleSaveEditMember}
                         disabled={submitting}
-                        className="flex-1 py-2.5 bg-alita-orange text-alita-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 shadow-md disabled:opacity-50 active:scale-[0.98] transition-all"
+                        className="flex-1 py-2.5 bg-alita-orange text-alita-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 shadow-md disabled:opacity-50 active:scale-98 transition-all"
                       >
                         {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
                       </button>
@@ -616,7 +664,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                      </thead>
                      <tbody className="divide-y divide-alita-gray-50">
                        {(() => {
-                         const activeMembers = activeTeam.members?.filter((m: any) => m.isActive === 1) || [];
+                         const activeMembers = activeTeam.members?.filter((m: TeamMember) => m.isActive === 1) || [];
                          const indexOfLast = memberPage * membersPerPage;
                          const indexOfFirst = indexOfLast - membersPerPage;
                          const currentMembers = activeMembers.slice(indexOfFirst, indexOfLast);
@@ -625,7 +673,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                             return <tr><td colSpan={isStructuralReadOnly ? 7 : 8} className="px-5 py-16 text-center text-alita-gray-300 font-bold text-sm tracking-tight italic">Belum ada anggota tim terdaftar.</td></tr>;
                          }
 
-                         return currentMembers.map((m: any, idx: number) => (
+                         return currentMembers.map((m: TeamMember, idx: number) => (
                            <tr key={m.id} className="hover:bg-alita-gray-50/50 transition-colors">
                              <td className="px-5 py-5 text-xs font-black text-alita-gray-400">{indexOfFirst + idx + 1}</td>
                              <td className="px-5 py-5 text-xs font-bold text-alita-gray-400">#{m.displayId}</td>
@@ -653,7 +701,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                                )}
                              </td>
                              <td className="px-5 py-5">
-                               <a href={m.ktpFilePath} target="_blank" className="text-[11px] font-bold text-alita-orange hover:underline">Lihat File</a>
+                               <a href={m.ktpFilePath || undefined} target="_blank" className="text-[11px] font-bold text-alita-orange hover:underline">Lihat File</a>
                              </td>
                              <td className="px-5 py-5">
                                 <span className="px-3 py-1 bg-alita-gray-50 rounded-full text-[9px] font-black uppercase text-alita-gray-501 border border-alita-gray-200 whitespace-nowrap">{m.position}</span>
@@ -761,9 +809,9 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                  </div>
 
                  {/* Modal Member Pagination Footer */}
-                 {activeTeam.members?.filter((m: any) => m.isActive === 1).length > membersPerPage && (
+                 {(activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) > membersPerPage && (
                    <div className="px-5 py-3 bg-alita-gray-50 border-t border-alita-gray-100 flex items-center justify-between">
-                     <span className="text-[10px] font-bold text-alita-gray-401 uppercase">Halaman {memberPage} dari {Math.ceil((activeTeam.members?.filter((m: any) => m.isActive === 1).length || 0) / membersPerPage)}</span>
+                     <span className="text-[10px] font-bold text-alita-gray-401 uppercase">Halaman {memberPage} dari {Math.ceil((activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) / membersPerPage)}</span>
                      <div className="flex gap-2">
                         <button 
                           disabled={memberPage === 1}
@@ -771,7 +819,7 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
                           className="px-3 py-1 bg-alita-white border border-alita-gray-200 rounded-lg text-[10px] font-black text-alita-gray-400 hover:text-alita-black disabled:opacity-30 transition-all uppercase"
                         >Prev</button>
                         <button 
-                          disabled={memberPage >= Math.ceil((activeTeam.members?.filter((m: any) => m.isActive === 1).length || 0) / membersPerPage)}
+                          disabled={memberPage >= Math.ceil((activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) / membersPerPage)}
                           onClick={() => setMemberPage(p => p + 1)}
                           className="px-3 py-1 bg-alita-white border border-alita-gray-200 rounded-lg text-[10px] font-black text-alita-gray-400 hover:text-alita-black disabled:opacity-30 transition-all uppercase"
                         >Next</button>
@@ -805,8 +853,8 @@ export default function TeamManagement({ assignment, onClose }: TeamManagementPr
       )}
 
       {/* Modular Member Wizard */}
-      {isMemberModalOpen && (
-        <MemberWizard 
+      {isMemberModalOpen && activeTeam && (
+        <MemberWizard
           isOpen={isMemberModalOpen}
           onClose={() => setIsMemberModalOpen(false)}
           activeTeam={activeTeam}

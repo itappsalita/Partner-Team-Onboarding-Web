@@ -4,12 +4,13 @@ import { requestForPartners } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { eq } from "drizzle-orm";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: requestId } = await params;
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
 
     if (!session || (role !== "PMO_OPS" && role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Unauthorized. PMO Ops atau Superadmin only." }, { status: 403 });
@@ -37,8 +38,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .where(eq(requestForPartners.id, requestId));
 
     return NextResponse.json({ message: "Request berhasil dibatalkan." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Cancel request error:", error);
-    return NextResponse.json({ error: "Gagal membatalkan request: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal membatalkan request: " + getErrorMessage(error) }, { status: 500 });
   }
 }

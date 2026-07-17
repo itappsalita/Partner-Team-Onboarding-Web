@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
 import { generateUuid } from "@/lib/uuid";
 import { createNotification } from "@/lib/notifications";
+import { getErrorMessage } from "@/lib/errors";
 
 const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
@@ -25,12 +26,12 @@ const UPLOAD_DIR = join(process.cwd(), "public/uploads");
  *       401:
  *         description: Unauthorized. Session required.
  */
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = session.user as any;
+    const user = session.user;
     const role = user.role;
     const userId = user.id;
 
@@ -54,7 +55,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(assignments);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Fetch assignments error:", error);
     return NextResponse.json({ error: "Failed to fetch assignments" }, { status: 500 });
   }
@@ -96,7 +97,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     
     // Only Procurement or Superadmin can create new assignments
     if (!session || (role !== "PROCUREMENT" && role !== "SUPERADMIN")) {
@@ -246,8 +247,8 @@ export async function POST(req: Request) {
       id: result.assignmentId, 
       displayId: result.displayId 
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "Failed to process team data: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to process team data: " + getErrorMessage(error) }, { status: 500 });
   }
 }

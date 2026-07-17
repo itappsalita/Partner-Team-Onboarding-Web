@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import Modal from "../../../components/Modal";
 import TeamManagement from "../../../components/TeamManagement";
 
@@ -17,6 +18,49 @@ const PROVINSI_INDONESIA = [
   "Papua", "Papua Barat", "Papua Tengah", "Papua Pegunungan", "Papua Selatan", "Papua Barat Daya"
 ];
 
+interface QaMember {
+  id: string;
+  name: string;
+  position?: string | null;
+  selfieFilePath?: string | null;
+  isAttendedTraining?: number | null;
+  isReturning?: number | null;
+  score?: number | string | null;
+}
+
+interface QaRequest {
+  sowPekerjaan?: string | null;
+  provinsi?: string | null;
+}
+
+interface QaDataTeamPartner {
+  companyName?: string | null;
+  partner?: { name?: string | null; email?: string | null } | null;
+  request?: QaRequest | null;
+  partnerId?: string | null;
+  [key: string]: unknown;
+}
+
+interface QaTrainingProcess {
+  trainingDate?: string | null;
+  result?: string | null;
+  whatsappGroupJustification?: string | null;
+  evaluationNotes?: string | null;
+  qa?: { name?: string | null } | null;
+}
+
+interface QaTeam {
+  id: string;
+  dataTeamPartnerId?: string | null;
+  displayId?: string | null;
+  status?: string | null;
+  teamNumber?: number | null;
+  leaderName?: string | null;
+  members?: QaMember[];
+  trainingProcess?: QaTrainingProcess | null;
+  dataTeamPartner?: QaDataTeamPartner | null;
+}
+
 export default function QaTrainingPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center font-black text-alita-orange animate-pulse">MEMUAT DASHBOARD QA...</div>}>
@@ -26,11 +70,11 @@ export default function QaTrainingPage() {
 }
 
 function QaTrainingContent() {
-  const { data: session } = useSession();
+  useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
   const highlightId = searchParams.get("highlight");
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<QaTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ongoing' | 'done'>('ongoing');
   
@@ -45,7 +89,7 @@ function QaTrainingContent() {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<QaTeam | null>(null);
   const [mounted, setMounted] = useState(false);
   
   // Forms
@@ -108,24 +152,24 @@ function QaTrainingContent() {
     }
   }, [highlightId, data, mounted, router]);
 
-  const handleOpenSchedule = (item: any) => {
+  const handleOpenSchedule = (item: QaTeam) => {
     setSelectedTask(item);
-    setScheduleForm({ 
-      trainingDate: item.trainingProcess?.trainingDate 
-        ? new Date(item.trainingProcess.trainingDate).toISOString().slice(0, 16) 
-        : "" 
+    setScheduleForm({
+      trainingDate: item.trainingProcess?.trainingDate
+        ? new Date(item.trainingProcess.trainingDate).toISOString().slice(0, 16)
+        : ""
     });
     setIsScheduleModalOpen(true);
   };
 
-  const handleOpenEvaluation = (item: any) => {
+  const handleOpenEvaluation = (item: QaTeam) => {
     setSelectedTask(item);
     // Preset attended members if already evaluated before
-    const attended = item.members?.filter((m: any) => m.isAttendedTraining === 1).map((m: any) => m.id) || [];
+    const attended = item.members?.filter((m) => m.isAttendedTraining === 1).map((m) => m.id) || [];
 
     // Preset existing scores
     const scores: Record<string, string> = {};
-    item.members?.filter((m: any) => m.isReturning === 0).forEach((m: any) => {
+    item.members?.filter((m) => m.isReturning === 0).forEach((m) => {
       scores[m.id] = m.score !== null && m.score !== undefined ? String(m.score) : "";
     });
 
@@ -138,8 +182,8 @@ function QaTrainingContent() {
     });
     setIsEvaluationModalOpen(true);
   };
-  
-  const handleOpenTeamDetail = (item: any) => {
+
+  const handleOpenTeamDetail = (item: QaTeam) => {
     setSelectedTask(item);
     setIsTeamManagementOpen(true);
   };
@@ -152,7 +196,7 @@ function QaTrainingContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teamId: selectedTask.id,
+          teamId: selectedTask?.id,
           trainingDate: scheduleForm.trainingDate
         })
       });
@@ -163,7 +207,7 @@ function QaTrainingContent() {
         const err = await res.json();
         alert(err.error || "Gagal menyimpan jadwal");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
@@ -182,7 +226,7 @@ function QaTrainingContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teamId: selectedTask.id,
+          teamId: selectedTask?.id,
           ...evaluationForm,
           memberScores: evaluationForm.memberScores
         })
@@ -194,7 +238,7 @@ function QaTrainingContent() {
         const err = await res.json();
         alert(err.error || "Gagal menyimpan evaluasi");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
@@ -384,7 +428,7 @@ function QaTrainingContent() {
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="text-sm font-bold text-alita-black tracking-tight mb-0.5" title={item.dataTeamPartner?.request?.sowPekerjaan}>
+                      <div className="text-sm font-bold text-alita-black tracking-tight mb-0.5" title={item.dataTeamPartner?.request?.sowPekerjaan ?? undefined}>
                         {(item.dataTeamPartner?.request?.sowPekerjaan?.substring(0, 30) || "-")}...
                       </div>
                       <div className="text-[10px] font-black text-alita-gray-400 tracking-wider uppercase">{item.dataTeamPartner?.request?.provinsi || "-"}</div>
@@ -495,7 +539,7 @@ function QaTrainingContent() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'
@@ -532,7 +576,7 @@ function QaTrainingContent() {
           </div>
           <button 
             type="submit" 
-            className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+            className="w-full py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? "Saving..." : "Simpan Jadwal Training"}
@@ -545,7 +589,7 @@ function QaTrainingContent() {
         <form onSubmit={submitEvaluation} className="space-y-6">
           <div className="bg-orange-50/30 border border-orange-100/50 p-4 rounded-2xl">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-alita-orange mb-3">Daftar Hadir Anggota Tim</h3>
-            <div className="max-h-[300px] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+            <div className="max-h-75 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
               {selectedTask && (
                 <div className="bg-alita-white/80 p-3 rounded-xl border border-alita-gray-100">
                   <div className="font-bold text-[11px] text-alita-black flex items-center gap-2 mb-2">
@@ -553,7 +597,7 @@ function QaTrainingContent() {
                     TIM #{selectedTask.teamNumber} • Leader: {selectedTask.leaderName}
                   </div>
                   <div className="space-y-0.5">
-                    {selectedTask.members?.filter((m: any) => m.isReturning === 0).map((m: any) => (
+                    {selectedTask.members?.filter((m) => m.isReturning === 0).map((m) => (
                       <div key={m.id} className="flex items-center gap-3 py-3 px-2 hover:bg-alita-gray-50 rounded-xl transition-all group border-b border-alita-gray-50/50 last:border-0">
                         <div className="relative flex items-center shrink-0">
                           <input 
@@ -567,13 +611,15 @@ function QaTrainingContent() {
                         </div>
 
                         {/* Selfie Thumbnail */}
-                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-alita-gray-200 bg-alita-gray-100 shrink-0 shadow-sm group-hover:border-alita-orange transition-colors">
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-alita-gray-200 bg-alita-gray-100 shrink-0 shadow-sm group-hover:border-alita-orange transition-colors">
                           {m.selfieFilePath ? (
-                            <img 
-                              src={m.selfieFilePath} 
-                              alt="Selfie" 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              onClick={() => window.open(m.selfieFilePath, '_blank')}
+                            <Image
+                              src={m.selfieFilePath}
+                              alt="Selfie"
+                              fill
+                              sizes="40px"
+                              className="object-cover group-hover:scale-110 transition-transform duration-300"
+                              onClick={() => window.open(m.selfieFilePath ?? undefined, '_blank')}
                               title="Klik untuk memperbesar"
                             />
                           ) : (
@@ -605,9 +651,9 @@ function QaTrainingContent() {
                         </div>
                       </div>
                     ))}
-                    {selectedTask.members?.filter((m: any) => m.isReturning === 1).length > 0 && (
+                    {(selectedTask.members?.filter((m) => m.isReturning === 1).length ?? 0) > 0 && (
                       <div className="pt-2 mt-2 border-t border-alita-gray-100 italic text-[9px] text-alita-gray-400 font-medium">
-                        * {selectedTask.members?.filter((m: any) => m.isReturning === 1).length} personil lama (certified) disembunyikan dari daftar absensi.
+                        * {selectedTask.members?.filter((m) => m.isReturning === 1).length} personil lama (certified) disembunyikan dari daftar absensi.
                       </div>
                     )}
                   </div>
@@ -659,7 +705,7 @@ function QaTrainingContent() {
           {selectedTask?.status !== 'TRAINING_EVALUATED' && selectedTask?.status !== 'COMPLETED' ? (
             <button 
               type="submit" 
-              className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" 
+              className="w-full py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" 
               disabled={submitting}
             >
               {submitting ? "Processing..." : "Submit Hasil Evaluasi"}
@@ -678,11 +724,11 @@ function QaTrainingContent() {
 
       {/* Team Detail Modal (Read-Only) */}
       {isTeamManagementOpen && selectedTask && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm" onClick={() => setIsTeamManagementOpen(false)}></div>
           <div className="relative w-full max-w-7xl z-10 animate-in fade-in zoom-in duration-300">
             <TeamManagement 
-               assignment={selectedTask.dataTeamPartner} 
+               assignment={selectedTask.dataTeamPartner as unknown as Parameters<typeof TeamManagement>[0]["assignment"]}
                onClose={() => setIsTeamManagementOpen(false)} 
             />
           </div>

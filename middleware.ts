@@ -26,6 +26,17 @@ export default withAuth(
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
     }
+
+    // Only SUPERADMIN, PEOPLE_CULTURE, and IT_BM can access certificate publishing
+    if (path.startsWith("/certificates")) {
+      if (
+        token?.role !== "SUPERADMIN" &&
+        token?.role !== "PEOPLE_CULTURE" &&
+        token?.role !== "IT_BM"
+      ) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
   },
   {
     callbacks: {

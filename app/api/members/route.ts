@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { teamMembers, teams, dataTeamPartners, requestForPartners, users } from "@/db/schema";
+import { teamMembers } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { eq } from "drizzle-orm";
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     const allowed = ["SUPERADMIN", "PMO_OPS", "PROCUREMENT", "QA", "PEOPLE_CULTURE"];
     if (!allowed.includes(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
       : allMembers;
 
     return NextResponse.json(filtered);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Members DB error:", error);
     return NextResponse.json({ error: "Gagal mengambil data anggota" }, { status: 500 });
   }
