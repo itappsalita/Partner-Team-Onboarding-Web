@@ -17,6 +17,32 @@ const PROVINSI_INDONESIA = [
   "Papua", "Papua Barat", "Papua Tengah", "Papua Pegunungan", "Papua Selatan", "Papua Barat Daya"
 ];
 
+interface CertMember {
+  id: string;
+  name: string;
+  position?: string | null;
+  certificateFilePath?: string | null;
+  alitaExtEmail?: string | null;
+  alitaEmailPassword?: string | null;
+}
+
+interface CertDataTeamPartner {
+  displayId?: string | null;
+  companyName?: string | null;
+  partner?: { name?: string | null; email?: string | null } | null;
+  request?: { sowPekerjaan?: string | null; provinsi?: string | null } | null;
+  [key: string]: unknown;
+}
+
+interface CertAssignment {
+  id: string;
+  displayId?: string | null;
+  status?: string | null;
+  trainingProcess?: { trainingDate?: string | null } | null;
+  dataTeamPartner?: CertDataTeamPartner | null;
+  members?: CertMember[];
+}
+
 export default function CertificatesPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center font-black text-alita-orange animate-pulse">MEMUAT DATA SERTIFIKAT...</div>}>
@@ -27,13 +53,16 @@ export default function CertificatesPage() {
 
 function CertificatesContent() {
   const { data: session } = useSession();
+  const userRole = session?.user?.role;
+  const isHC = userRole === "PEOPLE_CULTURE" || userRole === "SUPERADMIN";
+  const isITBM = userRole === "IT_BM" || userRole === "SUPERADMIN";
   const searchParams = useSearchParams();
   const router = useRouter();
   const highlightId = searchParams.get("highlight");
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<CertAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Tabs & Filters
   const [activeTab, setActiveTab] = useState<'pending' | 'published'>('pending');
   const [searchSow, setSearchSow] = useState("");
@@ -41,16 +70,17 @@ function CertificatesContent() {
   const [filterProvinsi, setFilterProvinsi] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  
+
   // Modal states
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-  const [isIssuanceModalOpen, setIsIssuanceModalOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<CertAssignment | null>(null);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isEmailExtModalOpen, setIsEmailExtModalOpen] = useState(false);
   const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<CertAssignment | null>(null);
+  const [selectedMember, setSelectedMember] = useState<CertMember | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Form state
+  // Form state (email-ext only - certificate issuance has no form fields)
   const [form, setForm] = useState({
     alitaExtEmail: "",
     alitaEmailPassword: ""
@@ -112,6 +142,7 @@ function CertificatesContent() {
     } catch (err) {
       console.error("Fetch pending error:", err);
     } finally {
+
       setLoading(false);
     }
   };
@@ -151,28 +182,60 @@ function CertificatesContent() {
     }
   }, [highlightId, data, mounted, router]);
 
-  const handleOpenIssuance = (assignment: any, member: any) => {
+  const handleOpenCertIssuance = (assignment: CertAssignment, member: CertMember) => {
+    setSelectedAssignment(assignment);
+    setSelectedMember(member);
+    setIsCertModalOpen(true);
+  };
+
+  const handleOpenEmailExt = (assignment: CertAssignment, member: CertMember) => {
     setSelectedAssignment(assignment);
     setSelectedMember(member);
     setForm({
       alitaExtEmail: member.alitaExtEmail || "",
       alitaEmailPassword: member.alitaEmailPassword || "",
     });
-    setIsIssuanceModalOpen(true);
+    setIsEmailExtModalOpen(true);
   };
-  
-  const handleOpenTeamDetail = (item: any) => {
+
+  const handleOpenTeamDetail = (item: CertAssignment) => {
     setSelectedTask(item);
     setIsTeamManagementOpen(true);
   };
 
-  const handleSubmitIssuance = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitCert = async () => {
     if (!selectedMember) return;
-    
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/certificates/issue", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: selectedMember.id })
+      });
+
+      if (res.ok) {
+        setIsCertModalOpen(false);
+        fetchData();
+        alert("✅ Certificate generated successfully!");
+      } else {
+        const err = await res.json();
+        alert("❌ " + (err.error || "Gagal menerbitkan sertifikat"));
+      }
+    } catch {
+      alert("❌ Terjadi kesalahan sistem.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitEmailExt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMember) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/certificates/email-ext", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -183,14 +246,14 @@ function CertificatesContent() {
       });
 
       if (res.ok) {
-        setIsIssuanceModalOpen(false);
+        setIsEmailExtModalOpen(false);
         fetchData();
-        alert("✅ Certificate & Credentials issued successfully!");
+        alert("✅ Email eksternal berhasil disimpan!");
       } else {
         const err = await res.json();
         alert("❌ " + (err.error || "Gagal menyimpan data"));
       }
-    } catch (err) {
+    } catch {
       alert("❌ Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
@@ -374,8 +437,9 @@ function CertificatesContent() {
               ) : (
                 currentItems.map((assignment) => {
                   const trainedMembers = assignment.members || [];
-                  const certifiedCount = trainedMembers.filter((m: any) => m.certificateFilePath && m.alitaExtEmail).length;
-                  
+                  const certifiedCount = trainedMembers.filter((m) => m.certificateFilePath).length;
+                  const emailExtCount = trainedMembers.filter((m) => m.alitaExtEmail).length;
+
                   return (
                     <tr 
                       key={assignment.id} 
@@ -403,15 +467,23 @@ function CertificatesContent() {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <div className="text-sm font-bold text-alita-black tracking-tight mb-1">{assignment.dataTeamPartner?.request?.sowPekerjaan.substring(0, 40)}...</div>
+                        <div className="text-sm font-bold text-alita-black tracking-tight mb-1">{assignment.dataTeamPartner?.request?.sowPekerjaan?.substring(0, 40)}...</div>
                         <div className="text-[10px] font-black text-alita-gray-400 tracking-wider uppercase">{assignment.dataTeamPartner?.request?.provinsi}</div>
                       </td>
                       <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-black text-alita-orange leading-none">{certifiedCount}</span>
-                          <span className="text-xs font-bold text-alita-gray-300">/</span>
-                          <span className="text-lg font-black text-alita-black/20 leading-none">{trainedMembers.length}</span>
-                          <span className="px-2 py-0.5 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[8px] font-black text-alita-gray-400 uppercase tracking-widest ml-2 shadow-sm">CERTIFIED</span>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-black text-alita-orange leading-none">{certifiedCount}</span>
+                            <span className="text-xs font-bold text-alita-gray-300">/</span>
+                            <span className="text-lg font-black text-alita-black/20 leading-none">{trainedMembers.length}</span>
+                            <span className="px-2 py-0.5 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[8px] font-black text-alita-gray-400 uppercase tracking-widest ml-2 shadow-sm">CERTIFIED</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-black text-alita-orange leading-none">{emailExtCount}</span>
+                            <span className="text-xs font-bold text-alita-gray-300">/</span>
+                            <span className="text-lg font-black text-alita-black/20 leading-none">{trainedMembers.length}</span>
+                            <span className="px-2 py-0.5 bg-alita-gray-50 border border-alita-gray-200 rounded-full text-[8px] font-black text-alita-gray-400 uppercase tracking-widest ml-2 shadow-sm">EMAIL EXT</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -421,32 +493,53 @@ function CertificatesContent() {
                             : "-"}
                         </div>
                       </td>
-                      <td className="px-6 py-5 min-w-[280px]">
+                      <td className="px-6 py-5 min-w-70">
                         <div className="flex flex-col gap-2">
-                          {trainedMembers.map((m: any) => (
-                             <div key={m.id} className="bg-alita-gray-50/50 flex items-center justify-between px-3 py-2 rounded-xl border border-alita-gray-100 group transition-all">
+                          {trainedMembers.map((m) => (
+                             <div key={m.id} className="bg-alita-gray-50/50 flex items-center justify-between px-3 py-2 rounded-xl border border-alita-gray-100 group transition-all gap-2">
                                <div className="flex flex-col">
                                  <span className="text-[11px] font-bold text-alita-black leading-none">{m.name}</span>
                                  <span className="text-[8px] font-black text-alita-gray-400 tracking-widest uppercase mt-0.5">{m.position}</span>
                                </div>
-                               {m.certificateFilePath || m.alitaExtEmail ? (
-                                 <button 
-                                   className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm flex items-center gap-1.5 hover:bg-green-100 transition-all active:scale-95"
-                                   onClick={() => handleOpenIssuance(assignment, m)}
-                                   title="Klik untuk ubah email / password"
-                                 >
-                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                   ACTIVE / EDIT ACCESS
-                                 </button>
-                               ) : (
-                                 <button 
-                                   className="px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg shadow-sm active:scale-95 transition-all border bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800 flex items-center gap-2"
-                                   onClick={() => handleOpenIssuance(assignment, m)}
-                                 >
-                                   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.25-2.25"></path></svg>
-                                   ISSUE ACCESS
-                                 </button>
-                               )}
+                               <div className="flex items-center gap-1.5">
+                                 {isHC && (
+                                   m.certificateFilePath ? (
+                                     <span
+                                       className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm flex items-center gap-1.5"
+                                       title="Sertifikat sudah diterbitkan"
+                                     >
+                                       CERTIFIED
+                                     </span>
+                                   ) : (
+                                     <button
+                                       className="px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg shadow-sm active:scale-95 transition-all border bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800 flex items-center gap-2"
+                                       onClick={() => handleOpenCertIssuance(assignment, m)}
+                                     >
+                                       GENERATE CERT
+                                     </button>
+                                   )
+                                 )}
+                                 {isITBM && (
+                                   m.alitaExtEmail ? (
+                                     <button
+                                       className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm flex items-center gap-1.5 hover:bg-green-100 transition-all active:scale-95"
+                                       onClick={() => handleOpenEmailExt(assignment, m)}
+                                       title="Klik untuk ubah email / password"
+                                     >
+                                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                       EMAIL ACTIVE / EDIT
+                                     </button>
+                                   ) : (
+                                     <button
+                                       className="px-3 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg shadow-sm active:scale-95 transition-all border bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800 flex items-center gap-2"
+                                       onClick={() => handleOpenEmailExt(assignment, m)}
+                                     >
+                                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.25-2.25"></path></svg>
+                                       ISSUE EMAIL EXT
+                                     </button>
+                                   )
+                                 )}
+                               </div>
                              </div>
                           ))}
                         </div>
@@ -478,7 +571,7 @@ function CertificatesContent() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'
@@ -500,13 +593,42 @@ function CertificatesContent() {
         )}
       </div>
 
-      {/* Issuance Modal */}
-      <Modal 
-        isOpen={isIssuanceModalOpen} 
-        onClose={() => setIsIssuanceModalOpen(false)} 
-        title={`Penerbitan Akses: ${selectedMember?.name}`}
+      {/* Certificate Issuance Modal (HC / SUPERADMIN) */}
+      <Modal
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
+        title={`Penerbitan Sertifikat: ${selectedMember?.name}`}
       >
-        <form onSubmit={handleSubmitIssuance} className="space-y-6">
+        <div className="space-y-6">
+          <div className="bg-alita-gray-50/80 p-4 rounded-2xl border border-alita-gray-100">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-1">Project Assignment ({selectedAssignment?.displayId})</h3>
+            <p className="text-sm font-bold text-alita-black leading-tight">{selectedAssignment?.dataTeamPartner?.request?.sowPekerjaan}</p>
+          </div>
+
+          <div className="p-4 border-2 border-dashed border-alita-gray-100 rounded-2xl bg-alita-gray-50/30 flex items-center justify-center text-center">
+            <p className="text-[11px] font-bold text-alita-gray-500 tracking-tight">
+              📄 <span className="text-alita-black uppercase tracking-widest">Digital Certificate</span> akan digenerate otomatis menggunakan template resmi Alita.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSubmitCert}
+            className="w-full py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+            disabled={submitting}
+          >
+            {submitting ? "Processing..." : "Generate Certificate"}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Email Ext Modal (IT BM / SUPERADMIN) */}
+      <Modal
+        isOpen={isEmailExtModalOpen}
+        onClose={() => setIsEmailExtModalOpen(false)}
+        title={`Email Eksternal: ${selectedMember?.name}`}
+      >
+        <form onSubmit={handleSubmitEmailExt} className="space-y-6">
           <div className="bg-alita-gray-50/80 p-4 rounded-2xl border border-alita-gray-100">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-alita-gray-400 mb-1">Project Assignment ({selectedAssignment?.displayId})</h3>
             <p className="text-sm font-bold text-alita-black leading-tight">{selectedAssignment?.dataTeamPartner?.request?.sowPekerjaan}</p>
@@ -514,9 +636,9 @@ function CertificatesContent() {
 
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Alita External Email</label>
-            <input 
-              type="email" 
-              className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all" 
+            <input
+              type="email"
+              className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
               value={form.alitaExtEmail}
               onChange={e => setForm({...form, alitaExtEmail: e.target.value})}
               required
@@ -526,9 +648,9 @@ function CertificatesContent() {
 
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-alita-gray-500">Initial Password</label>
-            <input 
-              type="text" 
-              className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all" 
+            <input
+              type="text"
+              className="w-full px-4 py-3 bg-alita-gray-50 border border-alita-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-alita-orange focus:bg-alita-white focus:ring-4 focus:ring-alita-orange-glow transition-all"
               value={form.alitaEmailPassword}
               onChange={e => setForm({...form, alitaEmailPassword: e.target.value})}
               required
@@ -536,24 +658,14 @@ function CertificatesContent() {
             />
           </div>
 
-          <div className="p-4 border-2 border-dashed border-alita-gray-100 rounded-2xl bg-alita-gray-50/30 flex items-center justify-center text-center">
-            <p className="text-[11px] font-bold text-alita-gray-500 tracking-tight">
-              {selectedMember?.certificateFilePath ? (
-                <>✅ <span className="text-green-600 uppercase tracking-widest">Certificate Exists</span>. Editing will only update email/password credentials.</>
-              ) : (
-                <>📄 <span className="text-alita-black uppercase tracking-widest">Digital Certificate</span> akan digenerate otomatis menggunakan template resmi Alita.</>
-              )}
-            </p>
-          </div>
-
-          <button 
-            type="submit" 
-            className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" 
+          <button
+            type="submit"
+            className="w-full py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
             disabled={submitting}
           >
-            {submitting 
-              ? "Processing..." 
-              : (selectedMember?.certificateFilePath ? "Update Credentials Only" : "Generate & Publish Credentials")
+            {submitting
+              ? "Processing..."
+              : (selectedMember?.alitaExtEmail ? "Update Credentials" : "Save Email Ext")
             }
           </button>
         </form>
@@ -561,11 +673,11 @@ function CertificatesContent() {
 
       {/* Team Detail Modal (Read-Only) */}
       {isTeamManagementOpen && selectedTask && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm" onClick={() => setIsTeamManagementOpen(false)}></div>
           <div className="relative w-full max-w-7xl z-10 animate-in fade-in zoom-in duration-300">
             <TeamManagement 
-               assignment={selectedTask.dataTeamPartner} 
+               assignment={selectedTask.dataTeamPartner as unknown as Parameters<typeof TeamManagement>[0]["assignment"]}
                onClose={() => setIsTeamManagementOpen(false)} 
             />
           </div>

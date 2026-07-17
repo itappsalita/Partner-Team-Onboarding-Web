@@ -7,7 +7,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import { generateUuid } from "../../../lib/uuid";
 import { notifyUsersByRole } from "../../../lib/notifications";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -15,9 +15,9 @@ export async function GET(req: Request) {
     }
 
     // Define query options based on role
-    const isPartner = (session.user as any).role === "PARTNER";
-    
-    const queryOptions: any = {
+    const isPartner = session.user.role === "PARTNER";
+
+    const allRequests = await db.query.requestForPartners.findMany({
       with: {
         pmo: {
           columns: {
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
           }
         },
         dataTeamPartners: {
-          where: isPartner ? eq(dataTeamPartners.partnerId, (session.user as any).id) : undefined,
+          where: isPartner ? eq(dataTeamPartners.partnerId, session.user.id) : undefined,
           with: {
             teams: {
               columns: {
@@ -36,31 +36,29 @@ export async function GET(req: Request) {
           }
         }
       },
-      orderBy: (requests: any, { desc }: any) => [desc(requests.createdAt)],
-    };
-
-    const allRequests = (await db.query.requestForPartners.findMany(queryOptions)) as any[];
+      orderBy: (requests, { desc }) => [desc(requests.createdAt)],
+    });
 
     // If partner, filter out requests that don't have any associated assignments for them
-    let filteredRequests = allRequests;
-    if (isPartner) {
-        filteredRequests = allRequests.filter((req: any) => req.dataTeamPartners.length > 0);
-    }
+    const filteredRequests = isPartner
+      ? allRequests.filter((req) => req.dataTeamPartners.length > 0)
+      : allRequests;
 
     // Calculate totalRegisteredTeams for each request (excluding CANCELED assignments)
-    const requestsWithTotals = filteredRequests.map((req: any) => {
-      const activeAssignments = (req.dataTeamPartners || []).filter((dt: any) => dt.status !== 'CANCELED');
-      const totalRegisteredTeams = activeAssignments.reduce((acc: number, dt: any) => acc + (dt.teams?.length || 0), 0);
+    const requestsWithTotals = filteredRequests.map((req) => {
+      const activeAssignments = (req.dataTeamPartners || []).filter((dt) => dt.status !== 'CANCELED');
+      const totalRegisteredTeams = activeAssignments.reduce((acc, dt) => acc + (dt.teams?.length || 0), 0);
       // Remove dataTeamPartners from the response
-      const { dataTeamPartners: _, ...rest } = req;
-      return { 
-        ...rest, 
-        totalRegisteredTeams 
+      const { dataTeamPartners, ...rest } = req;
+      void dataTeamPartners;
+      return {
+        ...rest,
+        totalRegisteredTeams
       };
     });
 
     return NextResponse.json(requestsWithTotals);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch requests" }, { status: 500 });
   }
 }
@@ -72,7 +70,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (role !== "PMO_OPS" && role !== "SUPERADMIN") {
       return NextResponse.json({ error: "Unauthorized. PMO Ops or Superadmin only." }, { status: 403 });
     }
@@ -89,7 +87,7 @@ export async function POST(req: Request) {
         const requestId = generateUuid();
         await tx.insert(requestForPartners).values({
           id: requestId,
-          pmoId: (session.user as any).id,
+          pmoId: session.user.id,
           sowPekerjaan,
           provinsi,
           area,
@@ -126,7 +124,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "Request created successfully", id: result.id, displayId: result.displayId }, { status: 201 });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to create request" }, { status: 500 });
   }
 }

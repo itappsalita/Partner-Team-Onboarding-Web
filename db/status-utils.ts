@@ -1,6 +1,17 @@
 import { db } from "./index";
-import { requestForPartners, dataTeamPartners, teams, teamMembers } from "./schema";
-import { eq, sql, and, ne } from "drizzle-orm";
+import { requestForPartners, dataTeamPartners, teams, teamMembers, requestStatusEnum } from "./schema";
+import { eq, and, ne } from "drizzle-orm";
+
+type RequestStatus = (typeof requestStatusEnum)[number];
+
+/**
+ * The Drizzle transaction object passed into `db.transaction(async (tx) => {...})`,
+ * derived directly from `db`'s own transaction signature so it always matches
+ * the schema this app uses. Functions below also accept `db` itself, since some
+ * callers invoke them outside of a transaction (e.g. app/api/data-team/teams/route.ts).
+ */
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbOrTx = typeof db | DbTransaction;
 
 /**
  * Status Priority (Lowest to Highest)
@@ -15,7 +26,7 @@ const STATUS_HIERARCHY: Record<string, number> = {
   'COMPLETED': 4
 };
 
-const REQUEST_STATUS_MAPPING: Record<number, any> = {
+const REQUEST_STATUS_MAPPING: Record<number, RequestStatus> = {
   0: 'REQUESTED',
   1: 'SOURCING',
   2: 'ON_TRAINING',
@@ -36,7 +47,7 @@ const REQUEST_STATUS_MAPPING: Record<number, any> = {
  * @param {string} teamId - The ID of the team to recalculate.
  * @returns {Promise<void>}
  */
-export async function recalculateTeamStatus(tx: any, teamId: string) {
+export async function recalculateTeamStatus(tx: DbOrTx, teamId: string) {
   // 1. Get the team and its request configuration
   const team = await tx.query.teams.findFirst({
     where: eq(teams.id, teamId),
@@ -57,7 +68,7 @@ export async function recalculateTeamStatus(tx: any, teamId: string) {
   const quota = team.dataTeamPartner?.request?.membersPerTeam || 0;
   const currentMembers = team.members || [];
   const currentMemberCount = currentMembers.length;
-  const hasLeader = currentMembers.some((m: any) => m.position === 'Leader');
+  const hasLeader = currentMembers.some((m) => m.position === 'Leader');
 
   // 2. Logika Downgrade:
   // Jika anggota kurang dari kuota ATAU tidak ada leader, status harus SOURCING
@@ -88,7 +99,7 @@ export async function recalculateTeamStatus(tx: any, teamId: string) {
  * @param {string} assignmentId - The ID of the data_team_partner record.
  * @returns {Promise<void>}
  */
-export async function recalculateAssignmentStatus(tx: any, assignmentId: string) {
+export async function recalculateAssignmentStatus(tx: DbOrTx, assignmentId: string) {
   const assignment = await tx.query.dataTeamPartners.findFirst({
     where: eq(dataTeamPartners.id, assignmentId),
     with: {
@@ -102,7 +113,7 @@ export async function recalculateAssignmentStatus(tx: any, assignmentId: string)
   if (assignment.status === 'CANCELED' || assignment.status === 'COMPLETED') return;
 
   // 1. Get status of all teams
-  const teamStatuses = assignment.teams.filter((t: any) => t.status !== 'CANCELED').map((t: any) => t.status);
+  const teamStatuses = assignment.teams.filter((t) => t.status !== 'CANCELED').map((t) => t.status);
   
   if (teamStatuses.length === 0) {
     await tx.update(dataTeamPartners)
@@ -117,7 +128,7 @@ export async function recalculateAssignmentStatus(tx: any, assignmentId: string)
   // 2. Find the "worst" status
   let lowestScore = 999;
   for (const s of teamStatuses) {
-    const score = STATUS_HIERARCHY[s] ?? 1;
+    const score = STATUS_HIERARCHY[s ?? ''] ?? 1;
     if (score < lowestScore) lowestScore = score;
   }
 
@@ -162,7 +173,7 @@ export async function recalculateAssignmentStatus(tx: any, assignmentId: string)
  * @param {string} requestId - The ID of the request to recalculate.
  * @returns {Promise<void>}
  */
-export async function recalculateRequestStatus(tx: any, requestId: string) {
+export async function recalculateRequestStatus(tx: DbOrTx, requestId: string) {
   // 1. Get the Request Quota and Current Status
   const [request] = await tx.select({ 
     jumlahKebutuhan: requestForPartners.jumlahKebutuhan,
@@ -197,7 +208,7 @@ export async function recalculateRequestStatus(tx: any, requestId: string) {
     lowestScore = 0; // REQUESTED
   } else {
     for (const team of allTeams) {
-        const score = STATUS_HIERARCHY[team.status] ?? 1; // Default to SOURCING
+        const score = STATUS_HIERARCHY[team.status ?? ''] ?? 1; // Default to SOURCING
         if (score < lowestScore) {
             lowestScore = score;
         }

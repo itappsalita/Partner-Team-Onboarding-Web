@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../db";
-import { dataTeamPartners, trainingProcesses, users, requestForPartners, teams } from "../../../../db/schema";
+import { trainingProcesses, teams } from "../../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createNotification } from "../../../../lib/notifications";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (role !== "QA" && role !== "SUPERADMIN") {
       return NextResponse.json({ error: "Access denied. QA only." }, { status: 403 });
     }
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(results);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Fetch training schedule error:", error);
     return NextResponse.json({ error: "Failed to fetch training schedules" }, { status: 500 });
   }
@@ -62,8 +62,8 @@ export async function PUT(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const role = (session.user as any).role;
-    const userId = (session.user as any).id;
+    const role = session.user.role;
+    const userId = session.user.id;
     if (role !== "QA" && role !== "SUPERADMIN") {
       return NextResponse.json({ error: "Access denied. QA only." }, { status: 403 });
     }
@@ -106,7 +106,7 @@ export async function PUT(req: Request) {
     }
 
     return NextResponse.json({ message: "Training schedule updated successfully." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Update schedule error:", error);
     return NextResponse.json({ error: "Gagal memperbarui jadwal training" }, { status: 500 });
   }

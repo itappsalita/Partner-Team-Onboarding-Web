@@ -7,6 +7,40 @@ import AssignPartnerModal from "../../../components/AssignPartnerModal";
 import TeamManagement from "../../../components/TeamManagement";
 import Modal from "../../../components/Modal";
 
+interface DataTeamRequest {
+  sowPekerjaan?: string | null;
+  provinsi?: string | null;
+  area?: string | null;
+  membersPerTeam?: number | null;
+  jumlahKebutuhan?: number | null;
+  siteId?: string | null;
+}
+
+interface DataTeamPartnerInfo {
+  name?: string | null;
+  email?: string | null;
+  companyName?: string | null;
+}
+
+interface DataTeamTeam {
+  id: string;
+  status?: string | null;
+  [key: string]: unknown;
+}
+
+interface DataTeamPartner {
+  id: string;
+  displayId?: string | null;
+  status?: string | null;
+  companyName?: string | null;
+  torFilePath?: string | null;
+  bakFilePath?: string | null;
+  createdAt?: string | null;
+  request?: DataTeamRequest | null;
+  partner?: DataTeamPartnerInfo | null;
+  teams?: DataTeamTeam[];
+}
+
 const PROVINSI_INDONESIA = [
   "Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Kepulauan Riau",
   "Jambi", "Sumatera Selatan", "Bangka Belitung", "Bengkulu", "Lampung",
@@ -26,15 +60,14 @@ function DataTeamContent() {
   const assignmentIdParam = searchParams.get("assignmentId");
   const openModalParam = searchParams.get("openModal");
 
-  const userRole = (session?.user as any)?.role;
+  const userRole = session?.user?.role;
   const isProcurement = userRole === "PROCUREMENT" || userRole === "SUPERADMIN";
   const isPartner = userRole === "PARTNER";
 
-  const [dataTeams, setDataTeams] = useState<any[]>([]);
+  const [dataTeams, setDataTeams] = useState<DataTeamPartner[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-  const [requesting, setRequesting] = useState<number | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<DataTeamPartner | null>(null);
   const [mounted, setMounted] = useState(false);
 
   // Tabs & Filters
@@ -53,34 +86,31 @@ function DataTeamContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Confirmation modal state
-  const [confirmTarget, setConfirmTarget] = useState<any>(null);
-  
   // Edit Docs Modal
   const [isEditDocsModalOpen, setIsEditDocsModalOpen] = useState(false);
-  const [editDocsTarget, setEditDocsTarget] = useState<any>(null);
+  const [editDocsTarget, setEditDocsTarget] = useState<DataTeamPartner | null>(null);
   const [editFiles, setEditFiles] = useState<{ tor: File | null; bak: File | null }>({ tor: null, bak: null });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
   // Cancel Assignment
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
-  const [cancelTarget, setCancelTarget] = useState<any>(null);
+  const [cancelTarget, setCancelTarget] = useState<DataTeamPartner | null>(null);
   const [isCancelSubmitting, setIsCancelSubmitting] = useState(false);
 
-  const getWorstCaseStatus = (dt: any) => {
+  const getWorstCaseStatus = (dt: DataTeamPartner) => {
     // If the master status from DB is already COMPLETED or CANCELED, respect it immediately
     if (dt.status === 'CANCELED') return 'CANCELED';
     if (dt.status === 'COMPLETED') return 'COMPLETED';
-    
+
     if (!dt.teams || dt.teams.length === 0) return dt.status || 'SOURCING';
-    
-    const statuses = dt.teams.map((t: any) => t.status);
-    
-    if (statuses.some((s: any) => s === 'SOURCING')) return 'SOURCING';
-    if (statuses.some((s: any) => s === 'WAIT_SCHEDULE_TRAINING')) return 'WAIT_SCHEDULE_TRAINING';
-    if (statuses.some((s: any) => s === 'TRAINING_SCHEDULED')) return 'TRAINING_SCHEDULED';
-    if (statuses.some((s: any) => s === 'TRAINING_EVALUATED')) return 'TRAINING_EVALUATED';
-    
+
+    const statuses = dt.teams.map((t) => t.status);
+
+    if (statuses.some((s) => s === 'SOURCING')) return 'SOURCING';
+    if (statuses.some((s) => s === 'WAIT_SCHEDULE_TRAINING')) return 'WAIT_SCHEDULE_TRAINING';
+    if (statuses.some((s) => s === 'TRAINING_SCHEDULED')) return 'TRAINING_SCHEDULED';
+    if (statuses.some((s) => s === 'TRAINING_EVALUATED')) return 'TRAINING_EVALUATED';
+
     return 'COMPLETED';
   };
 
@@ -195,7 +225,7 @@ function DataTeamContent() {
   };
 
 
-  const handleEditDocs = (dt: any) => {
+  const handleEditDocs = (dt: DataTeamPartner) => {
     setEditDocsTarget(dt);
     setEditFiles({ tor: null, bak: null });
     setIsEditDocsModalOpen(true);
@@ -238,14 +268,14 @@ function DataTeamContent() {
         const err = await res.json();
         alert(err.error || "Gagal mengupdate dokumen");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setIsEditSubmitting(false);
     }
   };
 
-  const handleCancelAssignment = (dt: any) => {
+  const handleCancelAssignment = (dt: DataTeamPartner) => {
     setCancelTarget(dt);
     setIsCancelConfirmOpen(true);
   };
@@ -264,7 +294,7 @@ function DataTeamContent() {
         const err = await res.json();
         alert(err.error || "Gagal membatalkan penugasan.");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setIsCancelSubmitting(false);
@@ -279,16 +309,16 @@ function DataTeamContent() {
 
     return (
       <div 
-        className="fixed inset-0 bg-alita-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-2 md:p-10 animate-in fade-in duration-300 cursor-pointer"
+        className="fixed inset-0 bg-alita-black/60 backdrop-blur-md z-100 flex items-center justify-center p-2 md:p-10 animate-in fade-in duration-300 cursor-pointer"
         onClick={handleCloseOverlay}
       >
          <div 
-            className="bg-alita-white w-full max-w-[1250px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 cursor-default"
+            className="bg-alita-white w-full max-w-312.5 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            <TeamManagement 
-              assignment={selectedAssignment} 
-              onClose={handleCloseOverlay} 
+            <TeamManagement
+              assignment={selectedAssignment as unknown as Parameters<typeof TeamManagement>[0]["assignment"]}
+              onClose={handleCloseOverlay}
             />
          </div>
       </div>
@@ -749,7 +779,7 @@ function DataTeamContent() {
                               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               EDIT DOCS
                             </button>
-                            {dt.teams?.every((t: any) => t.status === 'SOURCING') && (
+                            {dt.teams?.every((t) => t.status === 'SOURCING') && (
                               <button 
                                 className="px-3 py-1.5 bg-alita-white border border-red-200 text-red-600 rounded text-[11px] font-bold hover:bg-red-50 transition-all shadow-sm active:scale-95 whitespace-nowrap" 
                                 onClick={() => handleCancelAssignment(dt)}
@@ -787,7 +817,7 @@ function DataTeamContent() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'

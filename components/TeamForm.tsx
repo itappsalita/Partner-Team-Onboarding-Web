@@ -3,12 +3,32 @@
 import { useState } from "react";
 import Modal from "./Modal";
 
+export interface TeamFormAssignment {
+  id: string | number;
+}
+
+export interface TeamFormData {
+  id?: string | number | null;
+  teamNumber: string;
+  leaderName: string;
+  leaderPhone: string;
+  tkpk1Number: string;
+  tkpk1File?: File | null;
+  tkpk1FilePath?: string | null;
+  position: string;
+  location: string;
+  firstAidNumber: string;
+  firstAidFile?: File | null;
+  electricalNumber: string;
+  electricalFile?: File | null;
+}
+
 interface TeamFormProps {
   isOpen: boolean;
   onClose: () => void;
-  assignment: any;
+  assignment: TeamFormAssignment;
   isEditMode: boolean;
-  initialData: any;
+  initialData: TeamFormData;
   onSave: () => void;
   isStructuralReadOnly: boolean;
 }
@@ -64,7 +84,7 @@ export default function TeamForm({
         const err = await res.json();
         alert(err.error || "Gagal menyimpan tim");
       }
-    } catch (err) {
+    } catch {
       alert("Sistem error.");
     } finally {
       setSubmitting(false);
@@ -95,7 +115,7 @@ export default function TeamForm({
 
         <div className="border-2 border-alita-gray-50 rounded-2xl p-6 bg-alita-gray-50/30">
           <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-alita-gray-400 mb-5 flex items-center gap-2">
-            <span className="w-4 h-[2px] bg-alita-gray-200"></span>
+            <span className="w-4 h-0.5 bg-alita-gray-200"></span>
             Sertifikat Keahlian
           </h4>
           <div className="space-y-6">
@@ -126,7 +146,7 @@ export default function TeamForm({
           </div>
         </div>
 
-        <button type="submit" className="w-full py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" disabled={submitting}>
+        <button type="submit" className="w-full py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50" disabled={submitting}>
           {submitting ? "Proses Menyimpan..." : isEditMode ? "Perbarui Data Tim" : "Simpan Tim Baru"}
         </button>
       </form>

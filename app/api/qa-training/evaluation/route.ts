@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { dataTeamPartners, trainingProcesses, teamMembers, teams } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
-import { recalculateRequestStatus } from "@/db/status-utils";
 import { createNotification, notifyUsersByRole } from "@/lib/notifications";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function PUT(req: Request) {
   try {
@@ -94,20 +94,33 @@ export async function PUT(req: Request) {
       });
     }
 
-    // 3. Notify People & Culture (HR) if the result is PASS (LULUS) for certificate issuance
+    // 3. Notify People & Culture (certificate) and IT BM (external email) in parallel if the result is PASS (LULUS)
+    // In-app notification + email are both handled inside notifyUsersByRole (lib/notifications.ts).
     if (result === 'LULUS') {
-      await notifyUsersByRole({
-        role: "PEOPLE_CULTURE",
-        title: "Penertiban Sertifikat Baru",
-        message: `Unit ${teamWithPartner?.displayId || teamId} telah LULUS training. Silakan tinjau dan terbitkan sertifikat.`,
-        type: "CERTIFICATE",
-        link: `/certificates?highlight=${teamWithPartner?.id || teamId}`
-      });
+      const unitLabel = teamWithPartner?.displayId || teamId;
+      const certLink = `/certificates?highlight=${teamWithPartner?.id || teamId}`;
+
+      await Promise.all([
+        notifyUsersByRole({
+          role: "PEOPLE_CULTURE",
+          title: "Penertiban Sertifikat Baru",
+          message: `Unit ${unitLabel} telah LULUS training. Silakan tinjau dan terbitkan sertifikat.`,
+          type: "CERTIFICATE",
+          link: certLink
+        }),
+        notifyUsersByRole({
+          role: "IT_BM",
+          title: "Pembuatan Email Eksternal Baru",
+          message: `Unit ${unitLabel} telah LULUS training. Silakan buat/isi email eksternal Alita untuk anggota tim.`,
+          type: "CERTIFICATE",
+          link: certLink
+        }),
+      ]);
     }
 
     return NextResponse.json({ message: "Training evaluation saved successfully." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Evaluation error:", error);
-    return NextResponse.json({ error: "Gagal menyimpan hasil evaluasi training: " + (error?.message || "Unknown error") }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menyimpan hasil evaluasi training: " + (getErrorMessage(error) || "Unknown error") }, { status: 500 });
   }
 }

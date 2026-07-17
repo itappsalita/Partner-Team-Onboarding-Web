@@ -17,7 +17,7 @@ import { eq } from "drizzle-orm";
  *       200:
  *         description: A list of training process records.
  */
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     }
     const allTraining = await db.select().from(trainingProcesses);
     return NextResponse.json(allTraining);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch training data" }, { status: 500 });
   }
 }
@@ -63,7 +63,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== "QA") {
+    if (!session || session.user.role !== "QA") {
       return NextResponse.json({ error: "Unauthorized. QA only." }, { status: 403 });
     }
 
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     await db.insert(trainingProcesses).values({
       id: trainingId,
       teamId: teamId,
-      qaId: (session.user as any).id,
+      qaId: session.user.id,
       trainingDate: trainingDate ? new Date(trainingDate) : null,
       result: result || 'PENDING',
       whatsappGroupJustification: whatsappGroupJustification || null
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       .where(eq(trainingProcesses.id, trainingId));
 
     return NextResponse.json({ message: "Training record updated successfully", id: trainingId, displayId }, { status: 201 });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Failed to update training record" }, { status: 500 });
   }
 }

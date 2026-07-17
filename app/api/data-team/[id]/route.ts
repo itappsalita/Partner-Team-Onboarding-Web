@@ -6,6 +6,7 @@ import { authOptions } from "../../auth/[...nextauth]/route";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { eq } from "drizzle-orm";
+import { getErrorMessage } from "@/lib/errors";
 
 const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
@@ -14,7 +15,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id: idStr } = await params;
     const id = idStr;
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
+    const role = session?.user?.role;
     
     if (!session || (role !== "PROCUREMENT" && role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Unauthorized. Procurement or Superadmin only." }, { status: 403 });
@@ -58,8 +59,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .where(eq(dataTeamPartners.id, id));
 
     return NextResponse.json({ message: "Documents updated successfully", torFilePath, bakFilePath });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Document update error:", error);
-    return NextResponse.json({ error: "Failed to update documents: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update documents: " + getErrorMessage(error) }, { status: 500 });
   }
 }
