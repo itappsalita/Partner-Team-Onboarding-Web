@@ -29,6 +29,13 @@
       "when": 1780558517593,
       "tag": "0003_thick_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1782741024179,
+      "tag": "0004_public_shatterstar",
+      "breakpoints": true
     }
   ]
 }

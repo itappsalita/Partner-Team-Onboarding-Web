@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 // Forced refresh to clear stale Next.js cache
 import { db } from "@/db";
-import { teamMembers, teams, dataTeamPartners } from "@/db/schema";
+import { teamMembers, teams, dataTeamPartners, certificateSequences } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
 import { createNotification } from "@/lib/notifications";
 import path from "path";
 import fs from "fs-extra";
 import { generateCertificatePdf, getRomanMonth } from "./certUtils";
-
-const CERTIFICATE_SEQUENCE_START = 314;
 
 function formatCertificateNumber(sequence: number, date: Date) {
   const monthRoman = getRomanMonth(date.getMonth() + 1);
@@ -93,11 +91,15 @@ export async function PUT(req: Request) {
           maxCertificateNumber: sql<number>`max(${teamMembers.certificateNumber})`,
         })
         .from(teamMembers);
-      const lastSequence = Math.max(
-        Number(lastCertificate?.maxCertificateNumber || 0),
-        CERTIFICATE_SEQUENCE_START,
+
+      // Fetch sequence start from database
+      const [seqRecord] = await db.select().from(certificateSequences).limit(1);
+      const dbSequenceStart = seqRecord ? seqRecord.sequenceStart : 314;
+
+      certNumber = Math.max(
+        Number(lastCertificate?.maxCertificateNumber || 0) + 1,
+        dbSequenceStart,
       );
-      certNumber = lastSequence + 1;
       fullCertNo = formatCertificateNumber(certNumber, issuedAt);
 
       // Prepare PDF Data
