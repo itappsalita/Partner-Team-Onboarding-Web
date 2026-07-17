@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "eb8dceb5-2d79-491c-b444-8fe61a0d2a35",
-  "prevId": "6a16fe29-d420-4bf0-9251-e67bea824daa",
+  "id": "a76fa637-d7d1-4459-8399-880dfbb7654a",
+  "prevId": "eb8dceb5-2d79-491c-b444-8fe61a0d2a35",
   "tables": {
     "certificate_sequences": {
       "name": "certificate_sequences",
@@ -1088,7 +1088,7 @@
         },
         "role": {
           "name": "role",
-          "type": "enum('SUPERADMIN','PARTNER','PMO_OPS','PROCUREMENT','QA','PEOPLE_CULTURE')",
+          "type": "enum('SUPERADMIN','PARTNER','PMO_OPS','PROCUREMENT','QA','PEOPLE_CULTURE','IT_BM')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,

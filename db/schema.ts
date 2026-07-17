@@ -177,6 +177,16 @@ export const notifications = mysqlTable('notifications', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+/**
+ * CERTIFICATE SEQUENCES
+ * Stores the starting sequence for certificate numbers.
+ */
+export const certificateSequences = mysqlTable('certificate_sequences', {
+  id: int('id').autoincrement().primaryKey(),
+  sequenceStart: int('sequence_start').notNull().default(314),
+  updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
+});
+
 
 // --- RELATIONS ---
 

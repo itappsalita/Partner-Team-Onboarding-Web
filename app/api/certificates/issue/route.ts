@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getErrorMessage } from "@/lib/errors";
 // Forced refresh to clear stale Next.js cache
 import { db } from "@/db";
-import { teamMembers, teams, dataTeamPartners } from "@/db/schema";
+import { teamMembers, teams, dataTeamPartners, certificateSequences } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { recalculateRequestStatus } from "@/db/status-utils";
 import { createNotification } from "@/lib/notifications";
@@ -11,8 +11,6 @@ import fs from "fs-extra";
 import { generateCertificatePdf, getRomanMonth } from "./certUtils";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
-
-const CERTIFICATE_SEQUENCE_START = 314;
 
 function formatCertificateNumber(sequence: number, date: Date) {
   const monthRoman = getRomanMonth(date.getMonth() + 1);
@@ -90,61 +88,95 @@ export async function PUT(req: Request) {
     if (!memberData)
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
-    // Certificate generation is a one-time action; re-issuing is not supported here
-    if (memberData.certificateFilePath) {
-      return NextResponse.json({
-        message: "Certificate already exists for this member.",
-        filePath: memberData.certificateFilePath,
-      });
+    // 2. Handle Certificate Generation conditionally
+    let relativePath = memberData.certificateFilePath;
+    let certNumber = memberData.certificateNumber;
+    let fullCertNo = "";
+
+    if (!memberData.certificateFilePath) {
+      // Generate Certificate Number
+      const issuedAt = new Date();
+      const [lastCertificate] = await db
+        .select({
+          maxCertificateNumber: sql<number>`max(${teamMembers.certificateNumber})`,
+        })
+        .from(teamMembers);
+
+      // Fetch sequence start from database
+      const [seqRecord] = await db.select().from(certificateSequences).limit(1);
+      const dbSequenceStart = seqRecord ? seqRecord.sequenceStart : 314;
+
+      certNumber = Math.max(
+        Number(lastCertificate?.maxCertificateNumber || 0) + 1,
+        dbSequenceStart,
+      );
+      fullCertNo = formatCertificateNumber(certNumber, issuedAt);
+
+      // Prepare PDF Data
+      const certInputData = {
+        NO_SERTIFIKAT: fullCertNo,
+        EMPLOYEE_NAME: memberData.name,
+        KTP: memberData.nik,
+        OCCUPATION: memberData.position,
+        Date_Training: memberData.team?.trainingProcess?.trainingDate
+          ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "-",
+        Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+      };
+
+      // Generate & Save PDF
+      const pdfBuffer = await generateCertificatePdf(certInputData);
+      relativePath = formatCertificateRelativePath(fullCertNo);
+      const absolutePath = path.join(
+        process.cwd(),
+        "public",
+        relativePath.replace(/^\/+/, ""),
+      );
+
+      await fs.ensureDir(path.dirname(absolutePath));
+      await fs.writeFile(absolutePath, pdfBuffer);
+    } else {
+      // For existing certificates, keep the number for the response display
+      const issuedAt = memberData.certificateDate
+        ? new Date(memberData.certificateDate)
+        : new Date();
+      fullCertNo = formatCertificateNumber(certNumber || 0, issuedAt);
+
+      if (relativePath && certNumber) {
+        const nextRelativePath = formatCertificateRelativePath(fullCertNo);
+
+        if (relativePath !== nextRelativePath) {
+          const currentAbsolutePath = path.join(
+            process.cwd(),
+            "public",
+            relativePath.replace(/^\/+/, ""),
+          );
+          const nextAbsolutePath = path.join(
+            process.cwd(),
+            "public",
+            nextRelativePath.replace(/^\/+/, ""),
+          );
+
+          if (await fs.pathExists(currentAbsolutePath)) {
+            await fs.ensureDir(path.dirname(nextAbsolutePath));
+            if (!(await fs.pathExists(nextAbsolutePath))) {
+              await fs.move(currentAbsolutePath, nextAbsolutePath);
+            }
+            relativePath = nextRelativePath;
+          }
+        }
+      }
     }
 
-    // 2. Generate Certificate Number
-    const issuedAt = new Date();
-    const [lastCertificate] = await db
-      .select({
-        maxCertificateNumber: sql<number>`max(${teamMembers.certificateNumber})`,
-      })
-      .from(teamMembers);
-    const lastSequence = Math.max(
-      Number(lastCertificate?.maxCertificateNumber || 0),
-      CERTIFICATE_SEQUENCE_START,
-    );
-    const certNumber = lastSequence + 1;
-    const fullCertNo = formatCertificateNumber(certNumber, issuedAt);
-
-    // Prepare PDF Data
-    const certInputData = {
-      NO_SERTIFIKAT: fullCertNo,
-      EMPLOYEE_NAME: memberData.name,
-      KTP: memberData.nik,
-      OCCUPATION: memberData.position,
-      Date_Training: memberData.team?.trainingProcess?.trainingDate
-        ? new Date(memberData.team.trainingProcess.trainingDate).toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
-        : "-",
-      Tanggal_Sertifikat: issuedAt.toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
-    };
-
-    // Generate & Save PDF
-    const pdfBuffer = await generateCertificatePdf(certInputData);
-    const relativePath = formatCertificateRelativePath(fullCertNo);
-    const absolutePath = path.join(
-      process.cwd(),
-      "public",
-      relativePath.replace(/^\/+/, ""),
-    );
-
-    await fs.ensureDir(path.dirname(absolutePath));
-    await fs.writeFile(absolutePath, pdfBuffer);
-
-    // 5. Update Member Record
+    // 3. Update Member Record
     await db
       .update(teamMembers)
       .set({
@@ -154,7 +186,7 @@ export async function PUT(req: Request) {
       })
       .where(eq(teamMembers.id, memberId));
 
-    // 6. Collective Check for Completion
+    // 4. Collective Check for Completion
     const teamId = memberData.teamId;
     const requestId = memberData.team?.dataTeamPartner?.requestId;
 
@@ -211,7 +243,7 @@ export async function PUT(req: Request) {
       });
     }
 
-    // 7. Notify the Partner
+    // 5. Notify the Partner
     if (memberData.team?.dataTeamPartner?.partnerId) {
       await createNotification({
         userId: memberData.team.dataTeamPartner.partnerId,

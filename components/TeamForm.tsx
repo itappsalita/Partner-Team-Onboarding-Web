@@ -77,6 +77,7 @@ export default function TeamForm({
       });
 
       if (res.ok) {
+        alert(isEditMode ? "✅ Data tim lapangan berhasil diperbarui!" : "✅ Tim lapangan baru berhasil dibuat!");
         onSave();
         onClose();
       } else {
