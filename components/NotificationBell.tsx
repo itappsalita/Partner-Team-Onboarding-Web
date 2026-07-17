@@ -77,23 +77,26 @@ export default function NotificationBell() {
 
   // Network Polling: Fetch notifications every 30 seconds
   useEffect(() => {
-    fetchNotifications();
+    // Kick off the initial fetch from within an IIFE so the state update
+    // happens inside a nested callback rather than synchronously in the
+    // effect body (avoids cascading renders on mount).
+    (async () => {
+      await fetchNotifications();
+    })();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // UI Ticker: Update timestamps only when dropdown is open
+  // UI Ticker: Update timestamps only when dropdown is open.
+  // The "refresh now on open" update happens in the click handler (an event,
+  // not an effect) — see the bell button's onClick below — so this effect
+  // only subscribes to the interval while open.
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isOpen) {
-      setNow(new Date()); // Update immediately on open
-      interval = setInterval(() => {
-        setNow(new Date());
-      }, 10000); // Ticking every 10s
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    if (!isOpen) return;
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 10000); // Ticking every 10s
+    return () => clearInterval(interval);
   }, [isOpen]);
 
   useEffect(() => {
@@ -138,25 +141,25 @@ export default function NotificationBell() {
     switch (type) {
       case 'CERTIFICATE':
         return (
-          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 border border-green-100 flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 border border-green-100 shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15l-2 5l-4-4l-1 1l-4-4l11-13l11 13l-4 4l-1-1l-4 4l-2-5Z"></path><path d="M12 15l2 5l4-4l1 1l4-4l-11-13"></path></svg>
           </div>
         );
       case 'TRAINING':
         return (
-          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-alita-orange border border-orange-100 flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-alita-orange border border-orange-100 shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
           </div>
         );
       case 'ASSIGNMENT':
         return (
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
           </div>
         );
       default:
         return (
-          <div className="w-10 h-10 rounded-xl bg-alita-gray-50 flex items-center justify-center text-alita-gray-400 border border-alita-gray-100 flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-alita-gray-50 flex items-center justify-center text-alita-gray-400 border border-alita-gray-100 shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           </div>
         );
@@ -166,7 +169,10 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen) setNow(new Date()); // Refresh reference time right when opening
+          setIsOpen(!isOpen);
+        }}
         className={`relative p-2 rounded-xl transition-all duration-300 focus:outline-none flex items-center justify-center ${
           isOpen ? "bg-alita-orange/10 text-alita-orange shadow-inner" : "text-alita-gray-400 hover:text-alita-black hover:bg-alita-gray-50"
         }`}
@@ -192,10 +198,10 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-[380px] lg:w-[420px] rounded-3xl bg-white shadow-elevated border border-alita-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 origin-top-right">
+        <div className="absolute right-0 mt-3 w-95 lg:w-105 rounded-3xl bg-white shadow-elevated border border-alita-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 origin-top-right">
           {/* Header */}
           <div className="px-6 py-5 bg-alita-white border-b border-alita-gray-100 flex justify-between items-center relative">
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-alita-orange to-alita-orange-dark" />
+            <div className="absolute top-0 left-0 right-0 h-0.75 bg-linear-to-r from-alita-orange to-alita-orange-dark" />
             <div>
               <h3 className="text-sm font-black text-alita-black tracking-tight leading-none mb-1">Pusat Notifikasi</h3>
               <p className="text-[10px] font-bold text-alita-gray-400 uppercase tracking-widest leading-none">Anda memiliki {unreadCount} pesan baru</p>
@@ -211,7 +217,7 @@ export default function NotificationBell() {
           </div>
 
           {/* List Content */}
-          <div className="max-h-[480px] overflow-y-auto custom-scrollbar bg-white divide-y divide-alita-gray-50">
+          <div className="max-h-120 overflow-y-auto custom-scrollbar bg-white divide-y divide-alita-gray-50">
             {notifications.length === 0 ? (
               <div className="py-20 flex flex-col items-center justify-center text-center px-10">
                 <div className="w-16 h-16 bg-alita-gray-50 rounded-3xl flex items-center justify-center text-3xl shadow-inner border border-alita-gray-100 rotate-12 mb-4 animate-bounce duration-slow opacity-60">🔔</div>
@@ -229,7 +235,7 @@ export default function NotificationBell() {
                 >
                   {/* Unread Indicator Accent */}
                   {n.isRead === 0 && (
-                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-alita-orange shadow-[0_0_10px_rgba(255,122,0,0.5)]" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-alita-orange shadow-[0_0_10px_rgba(255,122,0,0.5)]" />
                   )}
                   
                   {getNotificationIcon(n.type)}
@@ -261,7 +267,7 @@ export default function NotificationBell() {
           {/* Footer */}
           {notifications.length > 0 && (
              <div className="p-4 bg-alita-gray-50/50 text-center border-t border-alita-gray-100">
-                <p className="text-[9px] font-black text-alita-gray-400 uppercase tracking-[0.1em]">Menampilkan riwayat aktivitas terbaru</p>
+                <p className="text-[9px] font-black text-alita-gray-400 uppercase tracking-widest">Menampilkan riwayat aktivitas terbaru</p>
              </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { recalculateTeamStatus, recalculateAssignmentStatus, recalculateRequestStatus } from "../../../../../db/status-utils";
 import fs from "fs-extra";
 import { join } from "path";
+import { getErrorMessage } from "@/lib/errors";
 
 const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
@@ -78,9 +79,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     return NextResponse.json({ message: "Member removal processed and status synchronized successfully." });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Delete member error:", error);
-    return NextResponse.json({ error: "Failed to process member removal: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to process member removal: " + getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -194,8 +195,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json({ message: "Member updated successfully", selfieFilePath });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Update member error:", error);
-    return NextResponse.json({ error: "Failed to update member: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update member: " + getErrorMessage(error) }, { status: 500 });
   }
 }

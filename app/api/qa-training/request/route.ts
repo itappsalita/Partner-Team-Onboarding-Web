@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { dataTeamPartners, teams, trainingProcesses, teamMembers } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { teams, trainingProcesses, teamMembers } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { recalculateRequestStatus, recalculateAssignmentStatus } from "@/db/status-utils";
 import { generateUuid } from "@/lib/uuid";
 import { notifyUsersByRole } from "@/lib/notifications";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
                 }
             }
         }
-      }) as any;
+      });
 
       if (!team) throw new Error("Team not found");
       
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
         .where(eq(teams.id, teamId));
 
       // 2. Manage Training Process Record
-      let trainingRecord = await tx.query.trainingProcesses.findFirst({
+      const trainingRecord = await tx.query.trainingProcesses.findFirst({
         where: eq(trainingProcesses.teamId, teamId)
       });
 
@@ -100,8 +101,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "Training requested successfully." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Training request error:", error);
-    return NextResponse.json({ error: "Gagal memproses request training: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memproses request training: " + getErrorMessage(error) }, { status: 500 });
   }
 }

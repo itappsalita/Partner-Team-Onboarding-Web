@@ -4,6 +4,7 @@ import { users, passwordResetTokens } from "../../../../db/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -50,8 +51,8 @@ export async function POST(req: Request) {
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, resetRecord.id));
 
     return NextResponse.json({ message: "Password Anda berhasil diperbarui. Silakan login kembali." });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Reset password API error:", error);
-    return NextResponse.json({ error: "Gagal memperbarui password: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memperbarui password: " + getErrorMessage(error) }, { status: 500 });
   }
 }

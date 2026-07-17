@@ -23,14 +23,14 @@ import { authOptions } from "../auth/[...nextauth]/route";
  *         description: Gagal mengambil data
  */
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
 
     const userNotifications = await db.query.notifications.findMany({
       where: eq(notifications.userId, userId),
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(userNotifications);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
   }
 }
@@ -79,7 +79,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { id, readAll } = await req.json();
 
     if (readAll) {
@@ -98,7 +98,7 @@ export async function PATCH(req: Request) {
       .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
 
     return NextResponse.json({ message: "Notification marked as read" });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to update notification" }, { status: 500 });
   }
 }

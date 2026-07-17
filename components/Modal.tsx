@@ -35,16 +35,16 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
   return (
     <div 
-      className="fixed inset-0 bg-black/40 backdrop-blur-[6px] flex items-center justify-center z-[100] animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/40 backdrop-blur-[6px] flex items-center justify-center z-100 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="bg-alita-white w-full max-w-[600px] rounded-2xl shadow-elevated flex flex-col overflow-hidden animate-fade-in-scale mx-4 border border-alita-gray-100"
+        className="bg-alita-white w-full max-w-150 rounded-2xl shadow-elevated flex flex-col overflow-hidden animate-fade-in-scale mx-4 border border-alita-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with orange accent top border */}
         <div className="relative px-6 py-5 border-b border-alita-gray-100">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-alita-orange via-alita-orange-light to-alita-orange-dark rounded-t-2xl" />
+          <div className="absolute top-0 left-0 right-0 h-0.75 bg-linear-to-r from-alita-orange via-alita-orange-light to-alita-orange-dark rounded-t-2xl" />
           <div className="flex justify-between items-center">
             <h2 className="text-[1.1rem] font-black text-alita-black tracking-tight leading-tight">{title}</h2>
             <button 

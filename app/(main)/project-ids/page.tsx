@@ -13,8 +13,7 @@ interface ProjectId {
 }
 
 export default function ProjectIdsPage() {
-  const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role;
+  useSession();
 
   const [items, setItems] = useState<ProjectId[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,7 +229,7 @@ export default function ProjectIdsPage() {
                           EDIT
                         </button>
                         <button
-                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm active:scale-95 min-w-[110px] border flex items-center justify-center gap-2 ${
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm active:scale-95 min-w-27.5 border flex items-center justify-center gap-2 ${
                             item.isActive === 1
                               ? "bg-red-50 text-red-600 border-red-100 hover:bg-red-100"
                               : "bg-alita-black text-alita-white border-alita-black hover:bg-alita-gray-800"
@@ -282,7 +281,7 @@ export default function ProjectIdsPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1
                         ? "bg-alita-black text-alita-white"
                         : "bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black"
@@ -334,7 +333,7 @@ export default function ProjectIdsPage() {
           </div>
           <button
             type="submit"
-            className="w-full mt-4 py-4 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+            className="w-full mt-4 py-4 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg hover:shadow-orange hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
             disabled={submitting}
           >
             {submitting ? "Memproses..." : modalMode === "create" ? "Tambah Project ID" : "Simpan Perubahan"}

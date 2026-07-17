@@ -43,12 +43,12 @@ export async function GET(req: Request) {
     }
 
     // Security Check: If partner, ensure they own the team
-    if ((session.user as any).role === "PARTNER") {
+    if (session.user.role === "PARTNER") {
         const team = await db.query.teams.findFirst({
             where: eq(teams.id, teamId),
             with: { dataTeamPartner: true }
         });
-        if (!team || team.dataTeamPartner.partnerId !== (session.user as any).id) {
+        if (!team || team.dataTeamPartner.partnerId !== session.user.id) {
             return NextResponse.json({ error: "Access Denied: team not found or belongs to another partner" }, { status: 403 });
         }
     }
@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(allMembers);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
   }
 }
@@ -136,8 +136,8 @@ export async function POST(req: Request) {
     if (!currentTeam) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
     // Security Check: If partner, ensure they own the team
-    if ((session.user as any).role === "PARTNER") {
-        if (currentTeam.dataTeamPartner.partnerId !== (session.user as any).id) {
+    if (session.user.role === "PARTNER") {
+        if (currentTeam.dataTeamPartner.partnerId !== session.user.id) {
             return NextResponse.json({ error: "Access Denied: team not found or belongs to another partner" }, { status: 403 });
         }
     }
@@ -173,7 +173,7 @@ export async function POST(req: Request) {
         orderBy: (tm, { desc }) => [desc(tm.createdAt)]
     });
 
-    const insertData: any = {
+    const insertData: Omit<typeof teamMembers.$inferInsert, "id"> = {
       teamId,
       memberNumber,
       name,
@@ -240,7 +240,7 @@ export async function POST(req: Request) {
       id: result.id,
       displayId: result.displayId
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Member creation error:", error);
     return NextResponse.json({ error: "Failed to add member" }, { status: 500 });
   }

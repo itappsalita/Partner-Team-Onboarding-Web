@@ -5,13 +5,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import ExcelJS from "exceljs";
 import { eq } from "drizzle-orm";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (role !== "PMO_OPS" && role !== "PROCUREMENT" && role !== "QA" && role !== "PEOPLE_CULTURE" && role !== "SUPERADMIN") {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }
@@ -133,8 +134,8 @@ export async function GET(req: Request) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Export error:", error);
-    return NextResponse.json({ error: "Failed to generate export file: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to generate export file: " + getErrorMessage(error) }, { status: 500 });
   }
 }

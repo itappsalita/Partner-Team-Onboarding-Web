@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../db";
-import { dataTeamPartners, teamMembers, teams } from "../../../../db/schema";
+import { teamMembers, teams } from "../../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const role = (session.user as any).role;
-    if (role !== "PEOPLE_CULTURE" && role !== "SUPERADMIN") {
-      return NextResponse.json({ error: "Access denied. People & Culture only." }, { status: 403 });
+    const role = session.user.role;
+    if (role !== "PEOPLE_CULTURE" && role !== "SUPERADMIN" && role !== "IT_BM") {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
     }
 
     // Fetch teams that have completed QA Training or are already completed
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(assignments);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Fetch pending certificates error:", error);
     return NextResponse.json({ error: "Gagal mengambil data sertifikat" }, { status: 500 });
   }

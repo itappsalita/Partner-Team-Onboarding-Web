@@ -8,7 +8,7 @@ import { relations } from 'drizzle-orm';
 const uuidVarchar = (name: string) => varchar(name, { length: 36 });
 
 // --- ENUMS ---
-export const roleEnum = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_CULTURE'] as const;
+export const roleEnum = ['SUPERADMIN', 'PARTNER', 'PMO_OPS', 'PROCUREMENT', 'QA', 'PEOPLE_CULTURE', 'IT_BM'] as const;
 export const requestStatusEnum = ['REQUESTED', 'SOURCING', 'ON_TRAINING', 'TRAINED', 'COMPLETED', 'CANCELED'] as const;
 export const trainingResultEnum = ['PENDING', 'LULUS', 'TIDAK_LULUS'] as const;
 

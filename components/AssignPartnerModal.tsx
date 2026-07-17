@@ -9,9 +9,27 @@ interface AssignPartnerModalProps {
   onSuccess: () => void;
 }
 
+interface PartnerRequest {
+  id: string | number;
+  displayId?: string | number;
+  sowPekerjaan: string;
+  provinsi?: string;
+  area?: string;
+  jumlahKebutuhan: number;
+  totalRegisteredTeams?: number;
+  status?: string;
+}
+
+interface Partner {
+  id: string | number;
+  companyName?: string | null;
+  name: string;
+  email: string;
+}
+
 export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: AssignPartnerModalProps) {
-  const [requests, setRequests] = useState<any[]>([]);
-  const [partners, setPartners] = useState<any[]>([]);
+  const [requests, setRequests] = useState<PartnerRequest[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,9 +70,9 @@ export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: Assig
       if (!reqRes.ok) throw new Error("Gagal mengambil data request");
       const reqData = await reqRes.json();
       
-      const filteredRequests = Array.isArray(reqData) 
-        ? reqData.filter((r: any) => 
-            r.status !== "COMPLETED" && 
+      const filteredRequests = Array.isArray(reqData)
+        ? reqData.filter((r: PartnerRequest) =>
+            r.status !== "COMPLETED" &&
             (r.totalRegisteredTeams || 0) < r.jumlahKebutuhan
           )
         : [];
@@ -111,7 +129,7 @@ export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: Assig
         const err = await res.json();
         alert(err.error || "Gagal menyimpan data penunjukan.");
       }
-    } catch (err) {
+    } catch {
       alert("Terjadi kesalahan sistem.");
     } finally {
       setSubmitting(false);
@@ -215,7 +233,7 @@ export default function AssignPartnerModal({ isOpen, onClose, onSuccess }: Assig
 
         <button 
           type="submit" 
-          className="w-full mt-2 py-3.5 inline-flex items-center justify-center bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white border-none rounded-md text-sm font-bold cursor-pointer transition-all shadow-[0_2px_4px_rgba(255,122,0,0.2)] hover:shadow-orange hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed uppercase tracking-wider"
+          className="w-full mt-2 py-3.5 inline-flex items-center justify-center bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white border-none rounded-md text-sm font-bold cursor-pointer transition-all shadow-[0_2px_4px_rgba(255,122,0,0.2)] hover:shadow-orange hover:-translate-y-px active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed uppercase tracking-wider"
           disabled={submitting || loading}
         >
           {submitting ? "Memproses..." : "Assign & Update Status"}

@@ -43,20 +43,13 @@ export async function generateCertificatePdf(data: {
   // Alita Wordmark (Standard v13)
   const alitaLogo = sortedBySize.find(img => img.name.includes("image13") || img.name.includes("image1"))?.name || "";
 
-  // Specific Footer Logo (image11.png as requested)
-  const alitaFooterLogo = imageList.find(img => img.name.includes("image11"))?.name || alitaLogo;
-
   // BORDER RECONSTRUCTION
   // These are the 4 main corner elements ($530 x 662$ range)
   const corners = imageList.filter(img => img.name.endsWith(".png") && img.size > 30000 && img.size < 80000);
 
   // Mapping based on observation from gallery.html and typical Word export order:
-  // image4/10: Top gold corners
   // image3/9: Bottom orange large triangles
-  const topLeft = corners.find(i => i.name.includes("image4"))?.name || corners[1]?.name || "";
-  const topRight = corners.find(i => i.name.includes("image10"))?.name || corners[3]?.name || "";
   const botLeft = corners.find(i => i.name.includes("image3"))?.name || corners[0]?.name || "";
-  const botRight = corners.find(i => i.name.includes("image9"))?.name || corners[2]?.name || "";
 
   // Generate QR Code for footer
   const qrText = "Generate by Partner team Onboarding Apps";

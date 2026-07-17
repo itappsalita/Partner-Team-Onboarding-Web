@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getErrorMessage } from "@/lib/errors";
 // Forced refresh to clear stale Next.js cache
 import { db } from "@/db";
 import { teamMembers, teams, dataTeamPartners, certificateSequences } from "@/db/schema";
@@ -8,6 +9,8 @@ import { createNotification } from "@/lib/notifications";
 import path from "path";
 import fs from "fs-extra";
 import { generateCertificatePdf, getRomanMonth } from "./certUtils";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 function formatCertificateNumber(sequence: number, date: Date) {
   const monthRoman = getRomanMonth(date.getMonth() + 1);
@@ -23,37 +26,44 @@ function formatCertificateRelativePath(certificateNumber: string) {
  * @swagger
  * /api/certificates/issue:
  *   put:
- *     summary: Issue certificate and external credentials
- *     description: Generates a PDF certificate for a member (via Puppeteer) and assigns Alita email credentials. Automatically triggers team and request status synchronization.
+ *     summary: Issue certificate (People & Culture / SUPERADMIN only)
+ *     description: Generates a PDF certificate for a member (via Puppeteer). Automatically triggers team and request status synchronization. Does not touch Alita external email credentials - see /api/certificates/email-ext for that.
  *     tags: [Certificates]
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [memberId, alitaExtEmail]
+ *             required: [memberId]
  *             properties:
  *               memberId:
  *                 type: string
- *               alitaExtEmail:
- *                 type: string
- *               alitaEmailPassword:
- *                 type: string
  *     responses:
  *       200:
- *         description: Certificate generated and credentials issued successfully.
+ *         description: Certificate generated successfully.
  *       400:
  *         description: Missing required fields.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Access denied.
  *       404:
  *         description: Member not found.
  */
 export async function PUT(req: Request) {
   try {
-    const { memberId, alitaExtEmail, alitaEmailPassword } = await req.json();
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const role = session.user.role;
+    if (role !== "PEOPLE_CULTURE" && role !== "SUPERADMIN") {
+      return NextResponse.json({ error: "Access denied. People & Culture only." }, { status: 403 });
+    }
 
-    if (!memberId || !alitaExtEmail) {
+    const { memberId } = await req.json();
+
+    if (!memberId) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required field: memberId" },
         { status: 400 },
       );
     }
@@ -166,21 +176,17 @@ export async function PUT(req: Request) {
       }
     }
 
-    // 5. Update Member Record
+    // 3. Update Member Record
     await db
       .update(teamMembers)
       .set({
-        alitaExtEmail,
-        alitaEmailPassword,
         certificateNumber: certNumber,
         certificateFilePath: relativePath,
-        ...(!memberData.certificateFilePath
-          ? { certificateDate: new Date() }
-          : {}),
+        certificateDate: new Date(),
       })
       .where(eq(teamMembers.id, memberId));
 
-    // 6. Collective Check for Completion
+    // 4. Collective Check for Completion
     const teamId = memberData.teamId;
     const requestId = memberData.team?.dataTeamPartner?.requestId;
 
@@ -237,28 +243,26 @@ export async function PUT(req: Request) {
       });
     }
 
-    // 7. Notify the Partner
+    // 5. Notify the Partner
     if (memberData.team?.dataTeamPartner?.partnerId) {
       await createNotification({
         userId: memberData.team.dataTeamPartner.partnerId,
         title: "Sertifikat Diterbitkan",
-        message: `Sertifikat dan akun akses untuk ${memberData.name} telah diterbitkan.`,
+        message: `Sertifikat untuk ${memberData.name} telah diterbitkan.`,
         type: "CERTIFICATE",
         link: `/data-team?assignmentId=${memberData.team.dataTeamPartnerId}&openModal=true`,
       });
     }
 
     return NextResponse.json({
-      message: memberData.certificateFilePath
-        ? "Credentials updated successfully"
-        : "Certificate generated & Access issued successfully",
+      message: "Certificate generated successfully",
       filePath: relativePath,
       certNumber: fullCertNo,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Issue certificate error:", error);
     return NextResponse.json(
-      { error: "Gagal memproses sertifikat: " + error.message },
+      { error: "Gagal memproses sertifikat: " + getErrorMessage(error) },
       { status: 500 },
     );
   }

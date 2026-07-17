@@ -4,6 +4,7 @@ import { projectIds } from "../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { eq, asc } from "drizzle-orm";
+import { getErrorCode } from "@/lib/errors";
 
 const ALLOWED_ROLES = ["SUPERADMIN", "PMO_OPS"];
 
@@ -40,9 +41,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
+    const userRole = session?.user?.role;
 
-    if (!session || !ALLOWED_ROLES.includes(userRole)) {
+    if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -60,8 +61,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "Project ID berhasil ditambahkan" }, { status: 201 });
-  } catch (error: any) {
-    if (error.code === "ER_DUP_ENTRY") {
+  } catch (error) {
+    if (getErrorCode(error) === "ER_DUP_ENTRY") {
       return NextResponse.json({ error: "Project ID sudah ada" }, { status: 409 });
     }
     return NextResponse.json({ error: "Gagal menambahkan Project ID" }, { status: 500 });
@@ -71,9 +72,9 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userRole = (session?.user as any)?.role;
+    const userRole = session?.user?.role;
 
-    if (!session || !ALLOWED_ROLES.includes(userRole)) {
+    if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -84,7 +85,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "ID wajib diisi" }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Partial<typeof projectIds.$inferInsert> = {};
     if (projectId !== undefined) updateData.projectId = projectId.trim();
     if (projectName !== undefined) updateData.projectName = projectName.trim();
     if (isActive !== undefined) updateData.isActive = Number(isActive);
@@ -92,8 +93,8 @@ export async function PUT(req: Request) {
     await db.update(projectIds).set(updateData).where(eq(projectIds.id, id));
 
     return NextResponse.json({ message: "Project ID berhasil diperbarui" });
-  } catch (error: any) {
-    if (error.code === "ER_DUP_ENTRY") {
+  } catch (error) {
+    if (getErrorCode(error) === "ER_DUP_ENTRY") {
       return NextResponse.json({ error: "Project ID sudah ada" }, { status: 409 });
     }
     return NextResponse.json({ error: "Gagal memperbarui Project ID" }, { status: 500 });

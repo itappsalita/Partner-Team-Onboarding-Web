@@ -1,15 +1,46 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import TeamManagement from "../../../components/TeamManagement";
 
+interface Member {
+  id: string;
+  name: string;
+  nik: string;
+  phone: string | null;
+  position: string | null;
+  selfieFilePath: string | null;
+  certificateFilePath: string | null;
+  isReturning: number;
+  isAttendedTraining: number;
+  team?: {
+    displayId?: string | null;
+    teamNumber?: number | null;
+    dataTeamPartnerId?: string | null;
+    dataTeamPartner?: {
+      displayId?: string | null;
+      request?: {
+        sowPekerjaan?: string | null;
+        provinsi?: string | null;
+        area?: string | null;
+      } | null;
+    } | null;
+  } | null;
+}
+
+interface Assignment {
+  id: string;
+  [key: string]: unknown;
+}
+
 export default function MembersPage() {
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterPosition, setFilterPosition] = useState("");
   const [filterCertified, setFilterCertified] = useState("");
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [loadingAssignment, setLoadingAssignment] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
@@ -34,14 +65,14 @@ export default function MembersPage() {
 
   useEffect(() => { setCurrentPage(1); }, [search, filterPosition, filterCertified]);
 
-  const handleOpenTeam = async (dataTeamPartnerId: string) => {
+  const handleOpenTeam = async (dataTeamPartnerId: string | null | undefined) => {
     if (!dataTeamPartnerId) return;
     setLoadingAssignment(true);
     try {
       const res = await fetch("/api/data-team");
       const data = await res.json();
       if (Array.isArray(data)) {
-        const assignment = data.find((a: any) => a.id === dataTeamPartnerId);
+        const assignment = (data as Assignment[]).find((a) => a.id === dataTeamPartnerId);
         if (assignment) setSelectedAssignment(assignment);
       }
     } catch {
@@ -159,13 +190,15 @@ export default function MembersPage() {
                       {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
                     <td className="px-5 py-4">
-                      <div className="w-10 h-10 rounded-xl overflow-hidden border border-alita-gray-200 bg-alita-gray-100 shadow-sm">
+                      <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-alita-gray-200 bg-alita-gray-100 shadow-sm">
                         {m.selfieFilePath ? (
-                          <img
+                          <Image
                             src={m.selfieFilePath}
                             alt={m.name}
-                            className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform"
-                            onClick={() => window.open(m.selfieFilePath, '_blank')}
+                            fill
+                            sizes="40px"
+                            className="object-cover cursor-pointer hover:scale-110 transition-transform"
+                            onClick={() => window.open(m.selfieFilePath ?? undefined, '_blank')}
                             title="Klik untuk memperbesar"
                           />
                         ) : (
@@ -207,7 +240,7 @@ export default function MembersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="text-xs font-bold text-alita-black leading-tight mb-0.5 max-w-[180px] truncate" title={m.team?.dataTeamPartner?.request?.sowPekerjaan}>
+                      <div className="text-xs font-bold text-alita-black leading-tight mb-0.5 max-w-45 truncate" title={m.team?.dataTeamPartner?.request?.sowPekerjaan ?? undefined}>
                         {m.team?.dataTeamPartner?.request?.sowPekerjaan || "-"}
                       </div>
                       <div className="text-[10px] font-black text-alita-gray-400 uppercase tracking-wider">
@@ -264,7 +297,7 @@ export default function MembersPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1
                         ? 'bg-alita-black text-alita-white'
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'
@@ -288,7 +321,7 @@ export default function MembersPage() {
 
       {/* TeamManagement Modal */}
       {selectedAssignment && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-alita-black/60 backdrop-blur-sm" onClick={() => setSelectedAssignment(null)} />
           <div className="relative w-full max-w-7xl z-10 animate-in fade-in zoom-in duration-300">
             <TeamManagement

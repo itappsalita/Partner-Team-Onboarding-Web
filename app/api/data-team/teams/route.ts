@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../db";
-import { teams, dataTeamPartners, requestForPartners } from "../../../../db/schema";
+import { teams, dataTeamPartners } from "../../../../db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/route";
-import { writeFile, mkdir } from "fs/promises";
+import { mkdir } from "fs/promises";
 import { join } from "path";
 import { eq, and } from "drizzle-orm";
 import { generateUuid } from "../../../../lib/uuid";
 import { recalculateRequestStatus } from "../../../../db/status-utils";
 
 import fs from "fs-extra";
+import { getErrorMessage } from "@/lib/errors";
 
 const UPLOAD_DIR = join(process.cwd(), "public/uploads");
 
@@ -60,9 +61,9 @@ export async function GET(req: Request) {
     }
 
     // Security Check: If partner, ensure they own this dataTeamPartner assignment
-    if ((session.user as any).role === "PARTNER") {
+    if (session.user.role === "PARTNER") {
         const assignment = await db.query.dataTeamPartners.findFirst({
-            where: and(eq(dataTeamPartners.id, dataTeamPartnerId), eq(dataTeamPartners.partnerId, (session.user as any).id))
+            where: and(eq(dataTeamPartners.id, dataTeamPartnerId), eq(dataTeamPartners.partnerId, session.user.id))
         });
         if (!assignment) {
             return NextResponse.json({ error: "Access Denied: assignment not found or belongs to another partner" }, { status: 403 });
@@ -79,9 +80,9 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(teamList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Fetch teams error:", error);
-    return NextResponse.json({ error: "Failed to fetch teams: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch teams: " + getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -128,9 +129,9 @@ export async function POST(req: Request) {
     const dataTeamPartnerId = formData.get("dataTeamPartnerId") as string;
     
     // Security Check: Ensure partner owns the assignment they are adding team to
-    if ((session.user as any).role === "PARTNER") {
+    if (session.user.role === "PARTNER") {
         const assignment = await db.query.dataTeamPartners.findFirst({
-            where: and(eq(dataTeamPartners.id, dataTeamPartnerId), eq(dataTeamPartners.partnerId, (session.user as any).id))
+            where: and(eq(dataTeamPartners.id, dataTeamPartnerId), eq(dataTeamPartners.partnerId, session.user.id))
         });
         if (!assignment) {
             return NextResponse.json({ error: "Access Denied: assignment not found or belongs to another partner" }, { status: 403 });
@@ -221,7 +222,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "Team added successfully", id: result.id, displayId: result.displayId }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Team creation error:", error);
     return NextResponse.json({ error: "Failed to add team" }, { status: 500 });
   }
@@ -285,7 +286,7 @@ export async function PUT(req: Request) {
     const electricalFilePath = await saveFile(electricalFile, "elec");
 
     // Prepare update object (only include provided fields)
-    const updateData: any = {
+    const updateData: Partial<typeof teams.$inferInsert> = {
       tkpk1Number,
       firstAidNumber,
       electricalNumber,
@@ -314,8 +315,8 @@ export async function PUT(req: Request) {
     }
 
     return NextResponse.json({ message: "Team updated successfully" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Team update error:", error);
-    return NextResponse.json({ error: "Failed to update team: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update team: " + getErrorMessage(error) }, { status: 500 });
   }
 }

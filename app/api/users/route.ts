@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../db";
-import { users } from "../../../db/schema";
+import { users, roleEnum } from "../../../db/schema";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { eq } from "drizzle-orm";
 import { generateUuid } from "../../../lib/uuid";
+import { getErrorMessage, getErrorCode } from "@/lib/errors";
 
 export async function GET(req: Request) {
   try {
@@ -15,16 +16,19 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const roleFilter = searchParams.get("role") as any;
-    const currentUserRole = (session.user as any).role;
+    const roleFilterRaw = searchParams.get("role");
+    const roleFilter = roleFilterRaw && (roleEnum as readonly string[]).includes(roleFilterRaw)
+      ? (roleFilterRaw as (typeof roleEnum)[number])
+      : null;
+    const currentUserRole = session.user.role;
 
-    // Only Superadmin can see ALL users. 
+    // Only Superadmin can see ALL users.
     // Procurement can see PARTNERs.
     if (currentUserRole !== "SUPERADMIN" && currentUserRole !== "PROCUREMENT") {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }
 
-    let baseQuery = db.select({
+    const baseQuery = db.select({
       id: users.id,
       name: users.name,
       email: users.email,
@@ -35,16 +39,12 @@ export async function GET(req: Request) {
       createdAt: users.createdAt,
     }).from(users);
 
-    let allUsers;
-    if (roleFilter) {
-      // @ts-ignore
-      allUsers = await baseQuery.where(eq(users.role, roleFilter));
-    } else {
-      allUsers = await baseQuery;
-    }
+    const allUsers = roleFilter
+      ? await baseQuery.where(eq(users.role, roleFilter))
+      : await baseQuery;
 
     return NextResponse.json(allUsers);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
   }
 }
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     // Allow initial user creation if DB is empty, otherwise require Superadmin
     const userCount = await db.select().from(users).limit(1);
     
-    if (userCount.length > 0 && (!session || (session.user as any).role !== "SUPERADMIN")) {
+    if (userCount.length > 0 && (!session || session.user.role !== "SUPERADMIN")) {
       return NextResponse.json({ error: "Unauthorized. Superadmin only." }, { status: 403 });
     }
 
@@ -94,8 +94,8 @@ export async function POST(req: Request) {
       .where(eq(users.id, userId));
 
     return NextResponse.json({ message: "User registered successfully", id: userId, displayId }, { status: 201 });
-  } catch (error: any) {
-    if (error.code === 'ER_DUP_ENTRY') {
+  } catch (error) {
+    if (getErrorCode(error) === 'ER_DUP_ENTRY') {
        return NextResponse.json({ error: "Email already exists" }, { status: 409 });
     }
     return NextResponse.json({ error: "Failed to register user" }, { status: 500 });
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== "SUPERADMIN") {
+    if (!session || session.user.role !== "SUPERADMIN") {
       return NextResponse.json({ error: "Unauthorized. Superadmin only." }, { status: 403 });
     }
 
@@ -117,7 +117,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Partial<typeof users.$inferInsert> = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (role) updateData.role = role;
@@ -132,11 +132,11 @@ export async function PUT(req: Request) {
       .where(eq(users.id, userId));
 
     return NextResponse.json({ message: "User updated successfully" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("PUT /api/users error:", error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (getErrorCode(error) === 'ER_DUP_ENTRY') {
       return NextResponse.json({ error: "Email already exists" }, { status: 409 });
     }
-    return NextResponse.json({ error: "Failed to update user: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update user: " + getErrorMessage(error) }, { status: 500 });
   }
 }

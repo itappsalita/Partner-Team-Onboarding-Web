@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       } else {
         setError(data.error || "Gagal mengirim permintaan. Silakan coba lagi.");
       }
-    } catch (err) {
+    } catch {
       setError("Terjadi kesalahan teknis. Silakan coba lagi.");
     } finally {
       setLoading(false);
@@ -37,9 +37,9 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-alita-black relative overflow-hidden before:content-[''] before:absolute before:-top-1/2 before:-right-[20%] before:w-[700px] before:h-[700px] before:bg-[radial-gradient(circle,rgba(255,122,0,0.12)_0%,transparent_70%)] before:rounded-full before:pointer-events-none after:content-[''] after:absolute after:-bottom-[30%] after:left-[-10%] after:w-[500px] after:h-[500px] after:bg-[radial-gradient(circle,rgba(255,122,0,0.06)_0%,transparent_70%)] after:rounded-full after:pointer-events-none">
-      <div className="bg-alita-white p-10 md:p-11 rounded-xl w-full max-w-[420px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] relative z-10 animate-in fade-in slide-in-from-bottom-5 duration-500 ease-out">
-        <div className="w-[52px] h-[52px] bg-gradient-to-br from-alita-orange to-alita-orange-dark rounded-lg flex items-center justify-center font-extrabold text-[1.35rem] text-alita-white mx-auto mb-6 shadow-[0_4px_16px_rgba(255,122,0,0.3)]">A</div>
+    <div className="min-h-screen flex items-center justify-center bg-alita-black relative overflow-hidden before:content-[''] before:absolute before:-top-1/2 before:-right-[20%] before:w-175 before:h-175 before:bg-[radial-gradient(circle,rgba(255,122,0,0.12)_0%,transparent_70%)] before:rounded-full before:pointer-events-none after:content-[''] after:absolute after:-bottom-[30%] after:left-[-10%] after:w-125 after:h-125 after:bg-[radial-gradient(circle,rgba(255,122,0,0.06)_0%,transparent_70%)] after:rounded-full after:pointer-events-none">
+      <div className="bg-alita-white p-10 md:p-11 rounded-xl w-full max-w-105 shadow-[0_25px_60px_rgba(0,0,0,0.4)] relative z-10 animate-in fade-in slide-in-from-bottom-5 duration-500 ease-out">
+        <div className="w-13 h-13 bg-linear-to-br from-alita-orange to-alita-orange-dark rounded-lg flex items-center justify-center font-extrabold text-[1.35rem] text-alita-white mx-auto mb-6 shadow-[0_4px_16px_rgba(255,122,0,0.3)]">A</div>
         <h1 className="text-2xl font-bold text-alita-black text-center tracking-tight mb-1">Forgot Password</h1>
         <p className="text-alita-gray-500 text-center mb-8 text-sm px-4">Masukkan email Anda untuk menerima instruksi reset password.</p>
 
@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              className="w-full mt-2 py-3 inline-flex items-center justify-center gap-2 bg-gradient-to-br from-alita-orange to-alita-orange-dark text-alita-white border-none rounded-md text-sm font-semibold cursor-pointer transition-all duration-150 shadow-[0_2px_4px_rgba(255,122,0,0.2)] hover:shadow-orange hover:-translate-y-px hover:brightness-105 active:translate-y-0 active:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+              className="w-full mt-2 py-3 inline-flex items-center justify-center gap-2 bg-linear-to-br from-alita-orange to-alita-orange-dark text-alita-white border-none rounded-md text-sm font-semibold cursor-pointer transition-all duration-150 shadow-[0_2px_4px_rgba(255,122,0,0.2)] hover:shadow-orange hover:-translate-y-px hover:brightness-105 active:translate-y-0 active:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               disabled={loading}
             >
               {loading ? "Sending..." : "Send Reset Link"}
