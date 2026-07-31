@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   const slides = [
     { src: "/images/campaign-trust.png", alt: "Campaign Trust" },
-    { src: "/images/campaign-pdp.png", alt: "Campaign PDP" },
+    { src: "/images/campaign-pdp-new.png", alt: "Campaign PDP" },
   ];
 
   useEffect(() => {
