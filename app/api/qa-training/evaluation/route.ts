@@ -103,7 +103,7 @@ export async function PUT(req: Request) {
       await Promise.all([
         notifyUsersByRole({
           role: "PEOPLE_CULTURE",
-          title: "Penertiban Sertifikat Baru",
+          title: "Penerbitan Sertifikat Baru",
           message: `Unit ${unitLabel} telah LULUS training. Silakan tinjau dan terbitkan sertifikat.`,
           type: "CERTIFICATE",
           link: certLink
