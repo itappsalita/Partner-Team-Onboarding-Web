@@ -43,6 +43,13 @@
       "when": 1784283206851,
       "tag": "0005_familiar_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1788410983593,
+      "tag": "0006_rename_mbr_00141",
+      "breakpoints": true
     }
   ]
 }
