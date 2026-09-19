@@ -229,6 +229,7 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
       leaderPhone: memberLeader?.phone || team.leaderPhone || "",
       tkpk1Number: team.tkpk1Number || "",
       tkpk1File: null,
+      tkpk1FilePath: team.tkpk1FilePath,
       firstAidNumber: team.firstAidNumber || "",
       firstAidFile: null,
       electricalNumber: team.electricalNumber || "",
@@ -307,17 +308,17 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
                                activeMembersLen === requiredQuota;
 
   return (
-    <div className="flex flex-col h-[90vh] lg:h-[85vh] bg-alita-white rounded-xl shadow-2xl border border-alita-gray-100 overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-2rem)] lg:h-[85dvh] bg-alita-white rounded-xl shadow-2xl border border-alita-gray-100 overflow-hidden">
       {/* Container Header */}
-      <header className="px-6 py-5 bg-alita-black text-alita-white flex justify-between items-center shrink-0">
+      <header className="px-4 sm:px-6 py-4 sm:py-5 gap-3 bg-alita-black text-alita-white flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-[1.25rem] font-bold text-alita-orange leading-tight">Kelola Tim Lapangan</h2>
-          <p className="text-[0.8rem] text-alita-gray-400 mt-1 flex items-center gap-3">
+          <p className="text-[0.8rem] text-alita-gray-400 mt-1 flex flex-wrap items-center gap-3 break-words">
             <span>Penugasan: <strong className="text-alita-white font-semibold">{assignment.request?.sowPekerjaan || "N/A"}</strong></span>
             {isStructuralReadOnly && <span className="px-3 py-1 bg-alita-orange text-alita-white rounded-full text-[9px] font-black tracking-[0.15em] shadow-sm shadow-orange-100">READ ONLY</span>}
           </p>
         </div>
-        <button onClick={onClose} className="text-3xl font-light text-alita-white hover:text-alita-orange transition-colors">&times;</button>
+        <button onClick={onClose} className="shrink-0 w-11 h-11 text-3xl font-light text-alita-white hover:text-alita-orange transition-colors">&times;</button>
       </header>
 
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">

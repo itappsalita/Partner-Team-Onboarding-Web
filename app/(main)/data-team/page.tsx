@@ -375,7 +375,7 @@ function DataTeamContent() {
               : "Kelola informasi tim dan anggota untuk penugasan Anda."}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {!isPartner && (
             <button
               className="bg-green-50 border border-green-200 text-green-700 px-5 py-2.5 rounded-lg text-[11px] font-bold shadow-sm hover:bg-green-100 active:scale-95 transition-all whitespace-nowrap flex items-center gap-2"
@@ -398,9 +398,9 @@ function DataTeamContent() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-alita-gray-50 p-1.5 rounded-2xl w-fit border border-alita-gray-100 shadow-inner">
+      <div className="flex flex-wrap gap-2 mb-6 bg-alita-gray-50 p-1.5 rounded-2xl w-fit max-w-full border border-alita-gray-100 shadow-inner">
         <button 
-          className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+          className={`px-3 sm:px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
             activeTab === 'ongoing' 
               ? 'bg-alita-white text-alita-black shadow-md' 
               : 'text-alita-gray-400 hover:text-alita-gray-600'
@@ -413,7 +413,7 @@ function DataTeamContent() {
           </span>
         </button>
         <button 
-          className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+          className={`px-3 sm:px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
             activeTab === 'completed' 
               ? 'bg-alita-white text-alita-black shadow-md' 
               : 'text-alita-gray-400 hover:text-alita-gray-600'
@@ -426,7 +426,7 @@ function DataTeamContent() {
           </span>
         </button>
         <button 
-          className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+          className={`px-3 sm:px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
             activeTab === 'canceled' 
               ? 'bg-alita-white text-red-600 shadow-md' 
               : 'text-alita-gray-400 hover:text-red-400'
@@ -640,7 +640,7 @@ function DataTeamContent() {
       </div>
 
       <div className="bg-alita-white rounded-2xl shadow-sm border border-alita-gray-100 overflow-hidden flex flex-col">
-        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-380px)]">
+        <div className="overflow-x-auto overflow-y-auto max-h-[65dvh] lg:max-h-[calc(100dvh-380px)]">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-alita-gray-50">
               <tr className="border-b border-alita-gray-100">
@@ -812,12 +812,12 @@ function DataTeamContent() {
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 max-w-[55vw] overflow-x-auto">
                 {Array.from({ length: totalPages }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`shrink-0 min-w-9 h-9 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'

@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+import { validateCertificateUploads } from "@/lib/certificate-upload";
 import { NextResponse } from "next/server";
 import { db } from "../../../../db";
 import { teams, dataTeamPartners } from "../../../../db/schema";
@@ -22,7 +24,8 @@ const saveFile = async (file: File | null, prefix: string) => {
   
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const filename = `${prefix}_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+  const extension = file.type === "application/pdf" ? "pdf" : file.type === "image/png" ? "png" : "jpg";
+  const filename = `${prefix}_${randomUUID()}.${extension}`;
   await fs.writeFile(join(UPLOAD_DIR, filename), buffer);
   return `/uploads/${filename}`;
 };
@@ -149,6 +152,9 @@ export async function POST(req: Request) {
     const firstAidFile = formData.get("firstAidFile") as File | null;
     const electricalNumber = formData.get("electricalNumber") as string || null;
     const electricalFile = formData.get("electricalFile") as File | null;
+
+    const uploadError = validateCertificateUploads([tkpk1File, firstAidFile, electricalFile]);
+    if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
 
     for (const [label, value] of [
       ["TKPK", tkpk1Number],
@@ -287,6 +293,9 @@ export async function PUT(req: Request) {
     const firstAidFile = formData.get("firstAidFile") as File | null;
     const electricalNumber = formData.get("electricalNumber") as string || null;
     const electricalFile = formData.get("electricalFile") as File | null;
+
+    const uploadError = validateCertificateUploads([tkpk1File, firstAidFile, electricalFile]);
+    if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
 
     for (const [label, value] of [
       ["TKPK", tkpk1Number],

@@ -18,12 +18,12 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-alita-gray-50 overflow-hidden">
+      <div className="flex h-dvh bg-alita-gray-50 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Header />
-          <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-alita-gray-50 flex flex-col">
-            <div className="flex-1">
+          <main className="min-h-0 min-w-0 flex-1 p-3 sm:p-4 lg:p-8 overflow-y-auto bg-alita-gray-50 flex flex-col">
+            <div className="flex-1 min-w-0">
               {children}
             </div>
             <footer className="mt-8 pt-4 border-t border-alita-gray-100/50 flex flex-col sm:flex-row justify-between items-center gap-2">

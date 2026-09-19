@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { validateCertificateUploads } from "@/lib/certificate-upload";
 import Modal from "./Modal";
 
 export interface TeamFormAssignment {
@@ -48,6 +49,10 @@ export default function TeamForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isStructuralReadOnly) return;
+    const uploadError = validateCertificateUploads([
+      formData.tkpk1File || null, formData.firstAidFile || null, formData.electricalFile || null,
+    ]);
+    if (uploadError) { alert(uploadError); return; }
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -81,8 +86,10 @@ export default function TeamForm({
         onSave();
         onClose();
       } else {
-        const err = await res.json();
-        alert(err.error || "Gagal menyimpan tim");
+        const err = await res.json().catch(() => null);
+        alert(res.status === 413
+          ? "Ukuran unggahan melebihi batas server. Total file maksimal 9 MB."
+          : err?.error || "Gagal menyimpan tim. Silakan coba lagi.");
       }
     } catch {
       alert("Sistem error.");
@@ -98,6 +105,7 @@ export default function TeamForm({
       title={isEditMode ? "Edit Data Tim Lapangan" : "Buat Tim Lapangan Baru"}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        <p className="text-xs text-alita-gray-500">Format sertifikat: PDF, JPG, atau PNG. Total ukuran file maksimal 9 MB.</p>
         {/* Static Header Info (Read-only reference) */}
         <div className="bg-alita-black text-alita-white p-5 rounded-2xl flex items-center justify-between shadow-xl animate-in slide-in-from-top-4 duration-500">
           <div>
@@ -124,10 +132,10 @@ export default function TeamForm({
               <input type="text" className="w-full px-4 py-3 bg-alita-white border border-alita-gray-200 rounded-xl text-sm font-bold shadow-sm focus:border-alita-orange transition-colors" maxLength={255} value={formData.tkpk1Number} onChange={e => setFormData({...formData, tkpk1Number: e.target.value})} required placeholder="Input Nomor Sertifikat" />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">File Sertifikat TKPK 1 (PDF/JPG)</label>
+              <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">File Sertifikat TKPK 1 (PDF/JPG/PNG)</label>
               <div className="flex flex-col gap-2">
                  {isEditMode && initialData?.tkpk1FilePath && <p className="text-[10px] font-bold text-alita-orange italic">Sudah ada file. Unggah baru untuk mengganti.</p>}
-                 <input type="file" className="block w-full text-xs text-alita-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-[11px] file:font-black file:bg-alita-black file:text-alita-white hover:file:bg-alita-orange file:transition-colors" onChange={e => setFormData({...formData, tkpk1File: e.target.files?.[0] || null})} required={!isEditMode && !initialData?.tkpk1FilePath} />
+                 <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-xs text-alita-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-[11px] file:font-black file:bg-alita-black file:text-alita-white hover:file:bg-alita-orange file:transition-colors" onChange={e => setFormData({...formData, tkpk1File: e.target.files?.[0] || null})} required={!isEditMode && !initialData?.tkpk1FilePath} />
               </div>
             </div>
 
@@ -135,12 +143,12 @@ export default function TeamForm({
                <div>
                   <label className="block text-[11px] font-bold text-alita-black mb-2">No. First Aid (Opsional)</label>
                   <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" maxLength={255} value={formData.firstAidNumber} onChange={e => setFormData({...formData, firstAidNumber: e.target.value})} />
-                  <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, firstAidFile: e.target.files?.[0] || null})} />
+                  <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, firstAidFile: e.target.files?.[0] || null})} />
                </div>
                <div>
                   <label className="block text-[11px] font-bold text-alita-black mb-2">No. Electrical (Opsional)</label>
                   <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" maxLength={255} value={formData.electricalNumber} onChange={e => setFormData({...formData, electricalNumber: e.target.value})} />
-                  <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, electricalFile: e.target.files?.[0] || null})} />
+                  <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, electricalFile: e.target.files?.[0] || null})} />
                </div>
             </div>
           </div>

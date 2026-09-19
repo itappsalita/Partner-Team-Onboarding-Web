@@ -223,7 +223,7 @@ export default function UsersPage() {
       </div>
 
       <div className="bg-alita-white rounded-2xl shadow-sm border border-alita-gray-100 overflow-hidden flex flex-col">
-        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-380px)]">
+        <div className="overflow-x-auto overflow-y-auto max-h-[65dvh] lg:max-h-[calc(100dvh-380px)]">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-alita-gray-50">
               <tr className="border-b border-alita-gray-100">
@@ -333,12 +333,12 @@ export default function UsersPage() {
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 max-w-[55vw] overflow-x-auto">
                 {Array.from({ length: totalPages }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`min-w-8 h-8 rounded-lg text-xs font-black transition-all ${
+                    className={`shrink-0 min-w-9 h-9 rounded-lg text-xs font-black transition-all ${
                       currentPage === i + 1 
                         ? 'bg-alita-black text-alita-white' 
                         : 'bg-alita-white border border-alita-gray-200 text-alita-gray-400 hover:border-alita-black hover:text-alita-black'

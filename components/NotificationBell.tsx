@@ -169,6 +169,8 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        aria-label="Notifikasi"
+        aria-expanded={isOpen}
         onClick={() => {
           if (!isOpen) setNow(new Date()); // Refresh reference time right when opening
           setIsOpen(!isOpen);
@@ -198,7 +200,7 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-95 lg:w-105 rounded-3xl bg-white shadow-elevated border border-alita-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 origin-top-right">
+        <div className="fixed left-3 right-3 top-16 sm:absolute sm:left-auto sm:top-auto sm:right-0 sm:mt-3 w-auto sm:w-95 lg:w-105 max-h-[calc(100dvh-5rem)] flex flex-col rounded-3xl bg-white shadow-elevated border border-alita-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 origin-top-right">
           {/* Header */}
           <div className="px-6 py-5 bg-alita-white border-b border-alita-gray-100 flex justify-between items-center relative">
             <div className="absolute top-0 left-0 right-0 h-0.75 bg-linear-to-r from-alita-orange to-alita-orange-dark" />
@@ -217,7 +219,7 @@ export default function NotificationBell() {
           </div>
 
           {/* List Content */}
-          <div className="max-h-120 overflow-y-auto custom-scrollbar bg-white divide-y divide-alita-gray-50">
+          <div className="min-h-0 max-h-[min(30rem,calc(100dvh-14rem))] overflow-y-auto overscroll-contain custom-scrollbar bg-white divide-y divide-alita-gray-50">
             {notifications.length === 0 ? (
               <div className="py-20 flex flex-col items-center justify-center text-center px-10">
                 <div className="w-16 h-16 bg-alita-gray-50 rounded-3xl flex items-center justify-center text-3xl shadow-inner border border-alita-gray-100 rotate-12 mb-4 animate-bounce duration-slow opacity-60">🔔</div>

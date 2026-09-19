@@ -83,12 +83,12 @@ export default function Sidebar() {
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
           onClick={close}
         />
       )}
 
-      <aside className={`fixed md:relative z-40 h-full w-68 min-w-68 bg-linear-to-b from-alita-black via-alita-black-soft to-alita-charcoal text-alita-white flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+      <aside className={`fixed lg:relative z-40 h-dvh w-68 max-w-[85vw] shrink-0 bg-linear-to-b from-alita-black via-alita-black-soft to-alita-charcoal text-alita-white flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
         {/* Logo */}
         <div className="p-7 flex items-center gap-3 border-b border-white/5">
           <div className="w-9 h-9 relative shrink-0">
@@ -109,7 +109,7 @@ export default function Sidebar() {
         <div className="px-6 pt-6 pb-2 text-[0.6rem] font-semibold uppercase tracking-[1.5px] text-alita-gray-500">Navigation</div>
 
         {/* Nav Items */}
-        <nav className="flex-1 p-[0.5rem_0.75rem] flex flex-col gap-0.5 overflow-y-auto">
+        <nav className="min-h-0 flex-1 p-[0.5rem_0.75rem] flex flex-col gap-0.5 overflow-y-auto">
           {menuItems.map((item) => {
             const allowed = roleAccess[item.name];
             if (allowed && (!userRole || !allowed.includes(userRole))) return null;
