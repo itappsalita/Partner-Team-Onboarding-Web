@@ -150,6 +150,19 @@ export async function POST(req: Request) {
     const electricalNumber = formData.get("electricalNumber") as string || null;
     const electricalFile = formData.get("electricalFile") as File | null;
 
+    for (const [label, value] of [
+      ["TKPK", tkpk1Number],
+      ["P3K", firstAidNumber],
+      ["Kelistrikan", electricalNumber],
+    ]) {
+      if (value !== null && (typeof value !== "string" || value.length > 255)) {
+        return NextResponse.json(
+          { error: `Nomor sertifikat ${label} harus berupa teks maksimal 255 karakter.` },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!dataTeamPartnerId || !tkpk1Number) {
       return NextResponse.json({ error: "Missing required fields (dataTeamPartnerId, No TKPK)" }, { status: 400 });
     }
@@ -275,8 +288,30 @@ export async function PUT(req: Request) {
     const electricalNumber = formData.get("electricalNumber") as string || null;
     const electricalFile = formData.get("electricalFile") as File | null;
 
+    for (const [label, value] of [
+      ["TKPK", tkpk1Number],
+      ["P3K", firstAidNumber],
+      ["Kelistrikan", electricalNumber],
+    ]) {
+      if (value !== null && (typeof value !== "string" || value.length > 255)) {
+        return NextResponse.json(
+          { error: `Nomor sertifikat ${label} harus berupa teks maksimal 255 karakter.` },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!id || !tkpk1Number) {
       return NextResponse.json({ error: "Missing required fields (ID, No TKPK)" }, { status: 400 });
+    }
+
+    const currentTeam = await db.query.teams.findFirst({
+      where: eq(teams.id, id),
+      with: { dataTeamPartner: true }
+    });
+    if (!currentTeam) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+    if (session.user.role === "PARTNER" && currentTeam.dataTeamPartner.partnerId !== session.user.id) {
+      return NextResponse.json({ error: "Access Denied: team belongs to another partner" }, { status: 403 });
     }
 
     // Handle File Uploads

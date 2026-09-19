@@ -50,6 +50,13 @@
       "when": 1788410983593,
       "tag": "0006_rename_mbr_00141",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1789858351903,
+      "tag": "0007_expand_certificate_numbers",
+      "breakpoints": true
     }
   ]
 }

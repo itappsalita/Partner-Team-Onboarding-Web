@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../auth/[...nextauth]/route";
 import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const apiKey = (process.env.GOOGLE_AI_API_KEY || "").trim();
     if (!apiKey) {
       return NextResponse.json({ error: "API Key Gemini belum dikonfigurasi di server (.env)" }, { status: 500 });
@@ -11,10 +16,8 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Updated priority list based on verified 2026 model availability
-    // 2026 Priority List: Restoring verified IDs and adding preview suffixes
+    // Start with the model that succeeds in production.
     const modelsToTry = [
-      "gemini-3.1-flash-preview",
       "gemini-3-flash-preview",
       "gemini-3-flash",
       "gemini-2.0-flash"

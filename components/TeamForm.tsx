@@ -121,7 +121,7 @@ export default function TeamForm({
           <div className="space-y-6">
             <div>
               <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">Nomor Sertifikat TKPK 1</label>
-              <input type="text" className="w-full px-4 py-3 bg-alita-white border border-alita-gray-200 rounded-xl text-sm font-bold shadow-sm focus:border-alita-orange transition-colors" value={formData.tkpk1Number} onChange={e => setFormData({...formData, tkpk1Number: e.target.value})} required placeholder="Input Nomor Sertifikat" />
+              <input type="text" className="w-full px-4 py-3 bg-alita-white border border-alita-gray-200 rounded-xl text-sm font-bold shadow-sm focus:border-alita-orange transition-colors" maxLength={255} value={formData.tkpk1Number} onChange={e => setFormData({...formData, tkpk1Number: e.target.value})} required placeholder="Input Nomor Sertifikat" />
             </div>
             <div>
               <label className="block text-[11px] font-bold text-alita-black mb-2 tracking-tight">File Sertifikat TKPK 1 (PDF/JPG)</label>
@@ -134,12 +134,12 @@ export default function TeamForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-alita-gray-100 mt-6">
                <div>
                   <label className="block text-[11px] font-bold text-alita-black mb-2">No. First Aid (Opsional)</label>
-                  <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" value={formData.firstAidNumber} onChange={e => setFormData({...formData, firstAidNumber: e.target.value})} />
+                  <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" maxLength={255} value={formData.firstAidNumber} onChange={e => setFormData({...formData, firstAidNumber: e.target.value})} />
                   <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, firstAidFile: e.target.files?.[0] || null})} />
                </div>
                <div>
                   <label className="block text-[11px] font-bold text-alita-black mb-2">No. Electrical (Opsional)</label>
-                  <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" value={formData.electricalNumber} onChange={e => setFormData({...formData, electricalNumber: e.target.value})} />
+                  <input type="text" className="w-full px-4 py-2 bg-alita-white border border-alita-gray-200 rounded-lg text-sm font-bold mb-2 shadow-sm" maxLength={255} value={formData.electricalNumber} onChange={e => setFormData({...formData, electricalNumber: e.target.value})} />
                   <input type="file" className="block w-full text-[10px] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-alita-gray-100 italic" onChange={e => setFormData({...formData, electricalFile: e.target.files?.[0] || null})} />
                </div>
             </div>

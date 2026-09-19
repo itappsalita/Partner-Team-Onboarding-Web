@@ -53,6 +53,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     if (!member) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
+    if (session.user.role === "PARTNER" && member.team.dataTeamPartner.partnerId !== session.user.id) {
+      return NextResponse.json({ error: "Access Denied: member belongs to another partner" }, { status: 403 });
+    }
+
     // 2. TRANSACTIONAL DELETE & SYNC
     await db.transaction(async (tx) => {
         // a. Conditional Delete/Deactivate
@@ -138,11 +142,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const member = await db.query.teamMembers.findFirst({
         where: and(eq(teamMembers.id, memberId), eq(teamMembers.isActive, 1)),
         with: {
-            team: true
+            team: { with: { dataTeamPartner: true } }
         }
     });
 
     if (!member) return NextResponse.json({ error: "Member not found or inactive" }, { status: 404 });
+
+    if (session.user.role === "PARTNER" && member.team.dataTeamPartner.partnerId !== session.user.id) {
+      return NextResponse.json({ error: "Access Denied: member belongs to another partner" }, { status: 403 });
+    }
 
     // 2. Strict Validation: Only SOURCING teams can be edited
     if (member.team.status !== 'SOURCING') {
