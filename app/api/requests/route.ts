@@ -58,7 +58,8 @@ export async function GET() {
     });
 
     return NextResponse.json(requestsWithTotals);
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch requests:", error);
     return NextResponse.json({ error: "Failed to fetch requests" }, { status: 500 });
   }
 }
@@ -82,6 +83,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields (including membersPerTeam)" }, { status: 400 });
     }
 
+    const parsedJumlah = parseInt(jumlahKebutuhan);
+    const parsedMembers = parseInt(membersPerTeam);
+    if (isNaN(parsedJumlah) || parsedJumlah < 1 || isNaN(parsedMembers) || parsedMembers < 1) {
+      return NextResponse.json({ error: "jumlahKebutuhan and membersPerTeam must be valid positive numbers" }, { status: 400 });
+    }
+
     // 5. TRANSACTIONAL INSERT & ID GENERATION
     const result = await db.transaction(async (tx) => {
         const requestId = generateUuid();
@@ -91,8 +98,8 @@ export async function POST(req: Request) {
           sowPekerjaan,
           provinsi,
           area,
-          jumlahKebutuhan: parseInt(jumlahKebutuhan),
-          membersPerTeam: parseInt(membersPerTeam),
+          jumlahKebutuhan: parsedJumlah,
+          membersPerTeam: parsedMembers,
           siteId,
           deskripsi,
           dueDate: new Date(dueDate),
@@ -114,17 +121,19 @@ export async function POST(req: Request) {
         return { id: requestId, displayId };
     });
 
-    // Notify Procurement team
-    await notifyUsersByRole({
+    // Notify Procurement team (fire-and-forget — don't block the response)
+    notifyUsersByRole({
       role: "PROCUREMENT",
-      title: "Request For Partner Baru",
+      title: "Request for New Partner",
       message: `RFP Baru telah dibuat: ${sowPekerjaan} (${result.displayId})`,
       type: "RFP",
-      link: `/requests`
-    });
+      link: `/requests`,
+      cc: "procurement@alita.id"
+    }).catch((err) => console.error("Failed to notify Procurement:", err));
 
     return NextResponse.json({ message: "Request created successfully", id: result.id, displayId: result.displayId }, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("Failed to create request:", error);
     return NextResponse.json({ error: "Failed to create request" }, { status: 500 });
   }
 }

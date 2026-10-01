@@ -303,9 +303,9 @@ export default function RequestsPage() {
         )}
       </div>
 
-      <div className="bg-alita-white rounded-2xl shadow-sm border border-alita-gray-100 overflow-hidden flex flex-col">
+      <div className="hidden lg:flex bg-alita-white rounded-2xl shadow-sm border border-alita-gray-100 overflow-hidden flex-col">
         <div className="overflow-x-auto overflow-y-auto max-h-[65dvh] lg:max-h-[calc(100dvh-380px)]">
-          <table className="w-full min-w-330 text-left border-collapse">
+          <table className="w-full min-w-[1200px] text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-alita-gray-50">
               <tr className="border-b border-alita-gray-100">
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-alita-gray-400">Nomor</th>
@@ -395,12 +395,12 @@ export default function RequestsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="text-[10px] font-bold text-alita-gray-401 whitespace-nowrap">
+                      <div className="text-[10px] font-bold text-alita-gray-400 whitespace-nowrap">
                         {mounted && req.dueDate ? new Date(req.dueDate).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="text-[10px] font-bold text-alita-gray-401 whitespace-nowrap">
+                      <div className="text-[10px] font-bold text-alita-gray-400 whitespace-nowrap">
                         {mounted ? new Date(req.createdAt).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : ""}
                       </div>
                     </td>
@@ -452,6 +452,110 @@ export default function RequestsPage() {
                   </button>
                 ))}
               </div>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-alita-gray-200 bg-alita-white text-alita-gray-500 hover:bg-alita-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="block lg:hidden space-y-3">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-alita-white rounded-2xl border border-alita-gray-100 p-5 shadow-sm space-y-3 animate-pulse">
+              <div className="skeleton h-4 w-24 rounded" />
+              <div className="skeleton h-5 w-48 rounded" />
+              <div className="skeleton h-4 w-36 rounded" />
+              <div className="skeleton h-4 w-20 rounded-full" />
+            </div>
+          ))
+        ) : currentItems.length === 0 ? (
+          <div className="bg-alita-white rounded-2xl border border-alita-gray-100 p-10 text-center">
+            <svg className="w-12 h-12 text-alita-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div className="text-sm font-bold text-alita-gray-400">Tidak ada data request</div>
+            <div className="text-xs text-alita-gray-300 mt-1">Coba ubah filter atau buat request baru</div>
+          </div>
+        ) : (
+          currentItems.map((req) => (
+            <div key={req.id} className="bg-alita-white rounded-2xl border border-alita-gray-100 p-5 shadow-sm hover:shadow-md transition-all space-y-3">
+              {/* Header: ID + Status */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-alita-gray-400">#{req.displayId}</span>
+                <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${getStatusClasses(req.status)}`}>
+                  {getStatusLabel(req.status)}
+                </span>
+              </div>
+
+              {/* SOW + Deskripsi */}
+              <div>
+                <div className="text-sm font-bold text-alita-black tracking-tight">{req.sowPekerjaan}</div>
+                <div className="text-xs text-alita-gray-500 mt-0.5 line-clamp-2">{req.deskripsi || "-"}</div>
+              </div>
+
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-[10px] font-black text-alita-gray-300 uppercase tracking-wider mb-0.5">Lokasi</div>
+                  <div className="font-bold text-alita-black">{req.provinsi}</div>
+                  <div className="text-[10px] text-alita-gray-400">{req.area}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-alita-gray-300 uppercase tracking-wider mb-0.5">PMO</div>
+                  <div className="font-bold text-alita-black">{req.pmo?.name || "N/A"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-alita-gray-300 uppercase tracking-wider mb-0.5">Quota / Fulfilled</div>
+                  <div className="font-bold text-alita-black">
+                    {req.jumlahKebutuhan} <span className="text-alita-gray-300">/</span>{" "}
+                    <span className={req.totalRegisteredTeams > 0 ? "text-alita-orange" : "text-alita-gray-300"}>{req.totalRegisteredTeams || 0}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-alita-gray-300 uppercase tracking-wider mb-0.5">Project ID</div>
+                  <div className="font-bold text-alita-black">{req.siteId || "—"}</div>
+                </div>
+              </div>
+
+              {/* Footer: Dates + Actions */}
+              <div className="flex items-center justify-between pt-2 border-t border-alita-gray-50">
+                <div className="flex gap-4 text-[10px] font-bold text-alita-gray-400">
+                  <span>Due: {mounted && req.dueDate ? new Date(req.dueDate).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</span>
+                  <span>{mounted ? new Date(req.createdAt).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }) : ""}</span>
+                </div>
+                {isPmo && req.status === "REQUESTED" && (
+                  <button
+                    onClick={() => handleCancel(req.id, req.displayId)}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 hover:text-red-600 transition-all whitespace-nowrap"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        {!loading && filteredRequests.length > 0 && (
+          <div className="flex items-center justify-between py-4">
+            <div className="text-xs font-bold text-alita-gray-400">
+              {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredRequests.length)} of {filteredRequests.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-alita-gray-200 bg-alita-white text-alita-gray-500 hover:bg-alita-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span className="text-xs font-black text-alita-black">{currentPage} / {totalPages}</span>
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}

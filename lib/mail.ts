@@ -79,12 +79,14 @@ export async function sendPasswordResetEmail(email: string, token: string) {
  * @param subject Email subject (also used as the header title).
  * @param bodyHtml Inner HTML content, inserted into the standard email template.
  */
-export async function sendNotificationEmail(to: string | string[], subject: string, bodyHtml: string) {
+export async function sendNotificationEmail(to: string | string[], subject: string, bodyHtml: string, cc?: string | string[]) {
   const recipients = Array.isArray(to) ? to.join(",") : to;
+  const ccRecipients = cc ? (Array.isArray(cc) ? cc.join(",") : cc) : undefined;
 
   const mailOptions = {
     from: FROM_ADDRESS,
     to: recipients,
+    ...(ccRecipients && { cc: ccRecipients }),
     subject,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">

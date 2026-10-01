@@ -18,6 +18,7 @@ function dispatchNotificationEmail(
   title: string,
   message: string,
   link?: string,
+  cc?: string | string[],
 ) {
   const recipients = emails.filter((e): e is string => !!e);
   if (recipients.length === 0) return;
@@ -27,7 +28,7 @@ function dispatchNotificationEmail(
     ${link ? `<p><a href="${APP_URL}${link}">Lihat detail</a></p>` : ""}
   `;
 
-  sendNotificationEmail(recipients, title, bodyHtml).catch((err) =>
+  sendNotificationEmail(recipients, title, bodyHtml, cc).catch((err) =>
     console.error("Failed to dispatch notification email:", err),
   );
 }
@@ -81,12 +82,14 @@ export async function notifyUsersByRole({
   message,
   type,
   link,
+  cc,
 }: {
   role: "PROCUREMENT" | "QA" | "PMO_OPS" | "SUPERADMIN" | "PARTNER" | "PEOPLE_CULTURE" | "IT_BM";
   title: string;
   message: string;
   type: NotificationType;
   link?: string;
+  cc?: string | string[];
 }) {
   try {
     // Fetch all users with the specified role
@@ -109,7 +112,7 @@ export async function notifyUsersByRole({
 
     await db.insert(notifications).values(notificationValues);
 
-    dispatchNotificationEmail(matchingUsers.map((u) => u.email), title, message, link);
+    dispatchNotificationEmail(matchingUsers.map((u) => u.email), title, message, link, cc);
 
     return { success: true, count: matchingUsers.length };
   } catch (error) {
