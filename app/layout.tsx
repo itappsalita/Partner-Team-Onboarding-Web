@@ -7,7 +7,7 @@ import IdleTimer from "../components/IdleTimer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  icons: { icon: "/images/logo.png", apple: "/images/logo.png" },
+  icons: { icon: "/images/fav.ico", apple: "/images/fav.ico" },
   title: "Partner Team Onboarding",
   description: "Aplikasi Onboarding Partner PT. Alita Praya Mitra",
 };
