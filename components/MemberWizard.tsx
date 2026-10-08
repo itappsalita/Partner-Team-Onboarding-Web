@@ -20,6 +20,7 @@ interface MemberWizardProps {
   activeTeam: ActiveTeam;
   onSave: () => void;
   isStructuralReadOnly: boolean;
+  canAddPostEval?: boolean;
 }
 
 export default function MemberWizard({ 
@@ -27,7 +28,8 @@ export default function MemberWizard({
   onClose, 
   activeTeam, 
   onSave,
-  isStructuralReadOnly 
+  isStructuralReadOnly,
+  canAddPostEval = false
 }: MemberWizardProps) {
   const [memberStep, setMemberStep] = useState(1); // 1: Scan, 2: Form
   const [isScanning, setIsScanning] = useState(false);
@@ -139,7 +141,7 @@ export default function MemberWizard({
 
   const handleAddMember = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!activeTeam || isStructuralReadOnly) return;
+    if (!activeTeam || (isStructuralReadOnly && !canAddPostEval)) return;
     
     if (memberForm.nik.length !== 16) {
       alert("NIK KTP harus berjumlah tepat 16 digit.");
@@ -199,7 +201,9 @@ export default function MemberWizard({
     <Modal 
       isOpen={isOpen} 
       onClose={handleClose} 
-      title={memberStep === 1 ? "Pindai KTP Anggota Baru" : "Detail Data Anggota"}
+      title={memberStep === 1 
+        ? (canAddPostEval ? "Pindai KTP (Anggota Susulan)" : "Pindai KTP Anggota Baru") 
+        : (canAddPostEval ? "Detail Data (Anggota Susulan)" : "Detail Data Anggota")}
     >
       {memberStep === 1 ? (
         <div className="flex flex-col items-center">
@@ -264,6 +268,18 @@ export default function MemberWizard({
               Verifikasi data di bawah ini. Pastikan Nama dan NIK sesuai dengan kartu identitas personil. Jika data tidak sesuai, silakan klik tombol Kembali untuk mengulang pindaian KTP.
             </p>
           </div>
+
+          {canAddPostEval && (
+            <div className="bg-orange-50 border border-orange-200 p-3.5 rounded-xl flex items-center gap-3 shadow-xs">
+              <span className="text-xl shrink-0">⚡</span>
+              <div>
+                <p className="text-xs font-black text-alita-orange uppercase tracking-wider">Penambahan Anggota Susulan</p>
+                <p className="text-[11px] font-bold text-orange-800 leading-normal">
+                  Penambahan anggota ini akan secara otomatis menyesuaikan tampilan limit anggota tim.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-center gap-3">
             <span className="text-base shrink-0">⚠️</span>

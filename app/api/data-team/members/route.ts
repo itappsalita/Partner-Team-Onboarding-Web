@@ -142,7 +142,13 @@ export async function POST(req: Request) {
         }
     }
     const mQuota = currentTeam.dataTeamPartner.request.membersPerTeam || 0;
-    if (mQuota > 0 && currentTeam.members.length >= mQuota) {
+    // SUPERADMIN can bypass quota for post-evaluation teams (Anggota Susulan)
+    const isPostEvalTeam = currentTeam.status === 'TRAINING_EVALUATED' || 
+                           currentTeam.status === 'COMPLETED' || 
+                           currentTeam.dataTeamPartner.status === 'COMPLETED' || 
+                           currentTeam.dataTeamPartner.status === 'TRAINED';
+    const isSuperAdminOverride = session.user.role === 'SUPERADMIN' && isPostEvalTeam;
+    if (mQuota > 0 && currentTeam.members.length >= mQuota && !isSuperAdminOverride) {
         return NextResponse.json({ error: `Kuota Anggota Tim sudah terpenuhi (${mQuota} orang).` }, { status: 400 });
     }
 

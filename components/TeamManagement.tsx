@@ -94,6 +94,11 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
   const [memberPage, setMemberPage] = useState(1);
   const membersPerPage = 10;
 
+  // SUPERADMIN override: allow adding members to post-evaluation teams
+  // (bypasses both the structural lock and quota limit)
+  const canAddPostEval = isSuperAdmin && !isCanceled &&
+    (assignment.status === 'COMPLETED' || assignment.status === 'TRAINED' || activeTeam?.status === 'TRAINING_EVALUATED' || activeTeam?.status === 'COMPLETED');
+
   // Modals
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
@@ -298,9 +303,13 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
     }
   };
 
+  const baseQuota = assignment.request?.membersPerTeam || 0;
   const activeMembersLen = activeTeam?.members?.filter((m: TeamMember) => m.isActive === 1).length || 0;
   const hasLeader = activeTeam?.members?.some((m: TeamMember) => m.position === "Leader" && m.isActive === 1);
-  const requiredQuota = assignment.request?.membersPerTeam || 0;
+  const requiredQuota = baseQuota;
+  // If susulan members have been added, the effective limit adjusts to the actual active members count
+  const effectiveQuota = Math.max(baseQuota, activeMembersLen);
+  const hasExtraSusulan = activeMembersLen > baseQuota;
 
   const isTeamValidToRequest = activeTeam && 
                                hasLeader && 
@@ -493,25 +502,54 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
               <div className="mb-6 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg lg:text-[1.1rem] font-black text-alita-black tracking-tight">Anggota Tim</h3>
-                  <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-alita-gray-400">Total: {activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0} Aktif</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                    <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-alita-gray-400">
+                      Total: {activeMembersLen} Aktif
+                    </p>
+                    <span className="text-alita-gray-300">•</span>
+                    <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-alita-gray-500">
+                      Limit: {effectiveQuota}
+                      {hasExtraSusulan && (
+                        <span className="ml-1.5 text-[9px] font-black text-alita-orange bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
+                          +{activeMembersLen - baseQuota} Susulan
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                 {!isStructuralReadOnly && (
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    <span className="hidden md:block text-[10px] font-black text-alita-gray-400 uppercase tracking-widest bg-alita-gray-50 px-3 py-1.5 rounded-lg border border-alita-gray-100 italic">
-                      Limit: {assignment.request?.membersPerTeam || 0}
-                    </span>
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <span className="hidden md:inline-flex items-center gap-1.5 text-[10px] font-black text-alita-gray-500 uppercase tracking-widest bg-alita-gray-50 px-3 py-1.5 rounded-lg border border-alita-gray-200 italic shadow-2xs">
+                    Limit: {effectiveQuota}
+                    {hasExtraSusulan && (
+                      <span className="not-italic text-[9px] font-extrabold text-alita-orange bg-orange-100/70 px-1.5 py-0.5 rounded">
+                        ({baseQuota} + {activeMembersLen - baseQuota})
+                      </span>
+                    )}
+                  </span>
+                  {/* Normal add-member button (respects quota) */}
+                  {!isStructuralReadOnly && (
                     <button 
                       onClick={() => setIsMemberModalOpen(true)}
-                      disabled={!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath || ((activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) >= (assignment.request?.membersPerTeam || 0))}
+                      disabled={!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath || (activeMembersLen >= effectiveQuota)}
                       className="px-4 lg:px-5 py-2 lg:py-2.5 bg-alita-black text-alita-white rounded-lg text-[10px] lg:text-xs font-bold hover:bg-alita-orange disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg active:scale-95"
                     >
-                      { ((activeTeam.members?.filter((m: TeamMember) => m.isActive === 1).length || 0) >= (assignment.request?.membersPerTeam || 0)) 
+                      { activeMembersLen >= effectiveQuota 
                         ? "Kuota Penuh" 
                         : "+ Tambah Anggota" 
                       }
                     </button>
-                  </div>
-                )}
+                  )}
+                  {/* SUPERADMIN post-eval override button (bypasses quota) */}
+                  {canAddPostEval && (
+                    <button 
+                      onClick={() => setIsMemberModalOpen(true)}
+                      disabled={!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath}
+                      className="px-4 lg:px-5 py-2 lg:py-2.5 bg-alita-orange text-alita-white rounded-lg text-[10px] lg:text-xs font-black hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg active:scale-95 border-2 border-orange-300"
+                    >
+                      ⚡ + Anggota Susulan
+                    </button>
+                  )}
+                </div>
               </div>
               
               {(!activeTeam.tkpk1Number || !activeTeam.tkpk1FilePath) && (
@@ -861,6 +899,7 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
           activeTeam={activeTeam}
           onSave={fetchTeams}
           isStructuralReadOnly={isStructuralReadOnly}
+          canAddPostEval={canAddPostEval}
         />
       )}
     </div>
