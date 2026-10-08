@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { teams, trainingProcesses, teamMembers } from "@/db/schema";
+import { teams, trainingProcesses, teamMembers, dataTeamPartners } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { recalculateRequestStatus, recalculateAssignmentStatus } from "@/db/status-utils";
 import { generateUuid } from "@/lib/uuid";
@@ -47,9 +47,18 @@ export async function POST(req: Request) {
 
       // VALIDATION
       const hasLeader = members.some(m => m.position === "Leader");
-      if (members.length !== requiredQuota) {
+      const isPostEvalOrSusulan = team.status === 'TRAINING_EVALUATED' || 
+                                 team.status === 'COMPLETED' || 
+                                 members.length >= requiredQuota;
+
+      if (isPostEvalOrSusulan) {
+        if (members.length < requiredQuota) {
+          throw new Error(`Kriteria kuota tidak terpenuhi. Minimal ${requiredQuota} anggota aktif (Ditemukan: ${members.length}).`);
+        }
+      } else if (members.length !== requiredQuota) {
         throw new Error(`Kriteria kuota tidak terpenuhi. Dibutuhkan tepat ${requiredQuota} anggota aktif (Ditemukan: ${members.length}).`);
       }
+
       if (!hasLeader) {
         throw new Error("Tim wajib memiliki minimal satu anggota dengan posisi Leader.");
       }
@@ -83,7 +92,24 @@ export async function POST(req: Request) {
               result: 'LULUS',
               evaluationNotes: "Verifikasi Personil Bersertifikat (Lulus Otomatis)"
           })
-          .where(eq(trainingProcesses.teamId, teamId));
+          .where(eq(trainingProcesses.id, trainingRecord.id));
+      } else {
+        // Re-requesting training for untrained / susulan members
+        await tx.update(trainingProcesses)
+          .set({ 
+              result: 'PENDING',
+              trainingDate: null,
+              evaluationNotes: null,
+              whatsappGroupJustification: null
+          })
+          .where(eq(trainingProcesses.id, trainingRecord.id));
+      }
+
+      // If team enters training, ensure assignment status reflects ongoing training
+      if (newStatus === 'WAIT_SCHEDULE_TRAINING' && team.dataTeamPartnerId) {
+        await tx.update(dataTeamPartners)
+          .set({ status: 'ON_TRAINING' })
+          .where(eq(dataTeamPartners.id, team.dataTeamPartnerId));
       }
 
       // 3. Update assignment & request status

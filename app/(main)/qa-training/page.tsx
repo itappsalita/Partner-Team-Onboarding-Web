@@ -26,6 +26,7 @@ interface QaMember {
   isAttendedTraining?: number | null;
   isReturning?: number | null;
   score?: number | string | null;
+  certificateFilePath?: string | null;
 }
 
 interface QaRequest {
@@ -628,7 +629,19 @@ function QaTrainingContent() {
                         </div>
 
                         <label htmlFor={`member-${m.id}`} className="flex flex-col cursor-pointer flex-1">
-                          <span className="text-xs font-bold text-alita-black tracking-tight group-hover:text-alita-orange transition-colors">{m.name}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-alita-black tracking-tight group-hover:text-alita-orange transition-colors">{m.name}</span>
+                            {m.certificateFilePath && (
+                              <span className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-[8px] font-black uppercase tracking-wider">
+                                Certified
+                              </span>
+                            )}
+                            {m.isAttendedTraining === 0 && (
+                              <span className="px-2 py-0.5 bg-orange-50 text-alita-orange border border-orange-200 rounded-full text-[8px] font-black uppercase tracking-wider">
+                                Susulan
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[9px] font-black uppercase text-alita-gray-400 tracking-wider leading-none mt-0.5">{m.position}</span>
                         </label>
 

@@ -266,21 +266,30 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
   };
 
   const executeRequestTraining = async () => {
-    if (!activeTeam || assignment.status === 'CANCELED' || assignment.status === 'COMPLETED') return;
+    if (!activeTeam || isCanceled) return;
 
     const activeMembers = activeTeam.members?.filter((m: TeamMember) => m.isActive === 1) || [];
     const hasLeader = activeMembers.some((m: TeamMember) => m.position === "Leader");
     const requiredQuota = assignment.request?.membersPerTeam || 0;
-    
-    if (!hasLeader || !activeTeam.tkpk1Number || activeMembers.length !== requiredQuota) {
+    const isSusulanTraining = canRequestSusulanTraining;
+
+    if (!isSusulanTraining && assignment.status === 'COMPLETED') return;
+
+    const isValidQuota = isSusulanTraining ? activeMembers.length >= requiredQuota : activeMembers.length === requiredQuota;
+
+    if (!hasLeader || !activeTeam.tkpk1Number || !isValidQuota) {
       alert(`Syarat Minimal belum terpenuhi: 
-1. Tim harus memiliki tepat ${requiredQuota} anggota aktif (Saat ini: ${activeMembers.length}).
+1. Tim harus memiliki ${isSusulanTraining ? 'minimal' : 'tepat'} ${requiredQuota} anggota aktif (Saat ini: ${activeMembers.length}).
 2. Wajib terdapat minimal 1 anggota dengan posisi "Leader".
 3. Nomor Sertifikat TKPK1 wajib terisi.`);
       return;
     }
 
-    if (!confirm(`Apakah Anda yakin ingin mengajukan QA Training untuk Tim #${activeTeam.teamNumber}? Sertifikat TKPK1 dan data identitas akan diuji.`)) return;
+    const confirmMsg = isSusulanTraining
+      ? `Apakah Anda yakin ingin mengajukan QA Training Ulang untuk Anggota Susulan pada Tim #${activeTeam.teamNumber}? Tim akan kembali ke antrean QA Training.`
+      : `Apakah Anda yakin ingin mengajukan QA Training untuk Tim #${activeTeam.teamNumber}? Sertifikat TKPK1 dan data identitas akan diuji.`;
+
+    if (!confirm(confirmMsg)) return;
 
     setRequesting(activeTeam.id);
     try {
@@ -311,10 +320,19 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
   const effectiveQuota = Math.max(baseQuota, activeMembersLen);
   const hasExtraSusulan = activeMembersLen > baseQuota;
 
+  const hasUntrainedMembers = activeTeam?.members?.some((m: TeamMember) => m.isActive === 1 && m.isAttendedTraining === 0);
+  const isPostEvalTeam = activeTeam?.status === 'TRAINING_EVALUATED' || activeTeam?.status === 'COMPLETED';
+  const canRequestSusulanTraining = (isSuperAdmin || userRole === 'PROCUREMENT') && !isCanceled && isPostEvalTeam && hasUntrainedMembers;
+
   const isTeamValidToRequest = activeTeam && 
                                hasLeader && 
                                activeTeam.tkpk1Number && 
                                activeMembersLen === requiredQuota;
+
+  const isTeamValidForSusulanRequest = activeTeam && 
+                                       hasLeader && 
+                                       activeTeam.tkpk1Number && 
+                                       activeMembersLen >= requiredQuota;
 
   return (
     <div className="flex flex-col h-[calc(100dvh-2rem)] lg:h-[85dvh] bg-alita-white rounded-xl shadow-2xl border border-alita-gray-100 overflow-hidden">
@@ -432,6 +450,23 @@ export default function TeamManagement({ assignment: rawAssignment, onClose }: T
                           <>
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             AJUKAN TRAINING
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {canRequestSusulanTraining && (
+                      <button
+                        onClick={executeRequestTraining}
+                        disabled={!isTeamValidForSusulanRequest || requesting === activeTeam.id}
+                        title={!isTeamValidForSusulanRequest ? `Syarat: Minimal ${assignment.request?.membersPerTeam || 0} anggota aktif, minimal 1 Leader, dan Nomor TKPK1 terisi.` : "Ajukan QA Training untuk anggota susulan"}
+                        className="px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 bg-alita-orange text-alita-white hover:brightness-110 cursor-pointer border-2 border-orange-300"
+                      >
+                        {requesting === activeTeam.id ? (
+                          <span className="italic">PROCESSING...</span>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            ⚡ AJUKAN TRAINING SUSULAN
                           </>
                         )}
                       </button>

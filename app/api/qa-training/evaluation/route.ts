@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { dataTeamPartners, trainingProcesses, teamMembers, teams } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, isNull } from "drizzle-orm";
 import { createNotification, notifyUsersByRole } from "@/lib/notifications";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -23,10 +23,14 @@ export async function PUT(req: Request) {
     // 1. Transaction to ensure consistency
     await db.transaction(async (tx) => {
       // a. Handle Attendance Logic (Update isAttendedTraining in teamMembers table)
-      // Reset all members of this team
+      // Reset untrained members of this team (protect already certified & returning members)
       await tx.update(teamMembers)
         .set({ isAttendedTraining: 0 })
-        .where(eq(teamMembers.teamId, teamId));
+        .where(and(
+          eq(teamMembers.teamId, teamId),
+          isNull(teamMembers.certificateFilePath),
+          eq(teamMembers.isReturning, 0)
+        ));
 
       // Mark attended members
       if (attendedMemberIds && attendedMemberIds.length > 0) {
